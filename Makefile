@@ -15,14 +15,21 @@
 # SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY
 # SERVICING, REPAIR OR CORRECTION.
 
-COPT = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall
-#COPT = 
+# For infos regarding large file support, see the excellent page 
+# http://people.redhat.com/berrange/notes/largefile.html
+
+COPT = -W -Wall -Werror -O2 $(shell getconf LFS_CFLAGS)
+LOPT = $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
+
+#getconf LFS_CFLAGS: RHEL 5.7 64Bit:      empty
+#                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+#                    Linux Mint 12 64Bit:
 
 alvara: alvara.o sha1.o ContentList.o
-	g++ $(COPT) alvara.o sha1.o ContentList.o -o alvara 
+	g++ $(LOPT) alvara.o sha1.o ContentList.o -o alvara 
 
 sha1.o: sha1.c sha1.h
-	gcc $(COPT) -c sha1.c -o sha1.o
+	g++ $(COPT) -c sha1.c -o sha1.o
 
 ContentList.o: ContentList.cpp ContentList.hpp
 	g++ $(COPT) -c ContentList.cpp -o ContentList.o
