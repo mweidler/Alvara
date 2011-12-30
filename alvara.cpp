@@ -109,19 +109,19 @@ int computeHashes(ContentList &contentList)
   char bytehex[2+1];
   int  rc= RC_OK;
   int  n=1;
-  int  percent;
-  int  oldpercent= -1;
   
   for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++, n++)
   {
     ContentEntry *entry = iter->second;
     sha1hex[0] = '\0';
+
+    cout << "\rGenerating hashes... (" << n << "/" << contentList.size() << ")   " << flush;
 	
     if (S_ISREG(entry->meta.st_mode))
     {
       if (sha1_file( iter->first.c_str(), sha1_output) == 0)
       {
-        for(int i = 0; i < HASH_LENGTH; i++)
+        for (int i = 0; i < HASH_LENGTH; i++)
         {
           snprintf(bytehex, sizeof(bytehex), "%02x", sha1_output[i]);
 	  strncat(sha1hex, bytehex, sizeof(sha1hex));
@@ -140,16 +140,12 @@ int computeHashes(ContentList &contentList)
     }
 
     entry->sha1= sha1hex;
-    
-    percent= n*100/contentList.size();
-    if (percent > oldpercent)
-    {
-       cout << "\rGenerating hashes... " << percent << "% done   " << flush;
-       oldpercent= percent;
-    }
   }
   
-  cout << "\n";
+  if (contentList.size() > 0)
+  {
+    cout << "\n";
+  }
 
   return rc;
 }
