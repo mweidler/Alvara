@@ -16,6 +16,7 @@
 # SERVICING, REPAIR OR CORRECTION.
 
 COPT = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+#COPT = 
 
 alvara: alvara.o sha1.o ContentList.o
 	g++ $(COPT) alvara.o sha1.o ContentList.o -o alvara 

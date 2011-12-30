@@ -30,6 +30,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <errno.h>
 
 using namespace std;
 
@@ -120,7 +121,6 @@ int computeHashes(ContentList &contentList)
     {
       if (sha1_file( iter->first.c_str(), sha1_output) == 0)
       {
-	  
         for(int i = 0; i < HASH_LENGTH; i++)
         {
           snprintf(bytehex, sizeof(bytehex), "%02x", sha1_output[i]);
@@ -130,7 +130,7 @@ int computeHashes(ContentList &contentList)
       else
       {
         strncpy(sha1hex, "----------------no-hash-----------------", sizeof(sha1hex));
-        cerr << "Error on creating hash for '" << iter->first << "'.\n";
+        cerr << "Error on creating hash for '" << iter->first << "', errno=" << errno << ".\n";
         rc=RC_ERROR;
       }
     }
@@ -239,7 +239,16 @@ void usage(const char *prgname)
 int main (int argc, char *argv[])
 {
   int rc= RC_OK;
-  int mode;//= 0;
+  int mode= 0;
+
+  // validating large file support
+  struct stat meta;
+  if (sizeof(meta.st_size) < 8)
+  {
+    cout << "ATTENTION: " << argv[0] << " was compiled without support for large files.\n";
+    cout << "           Checksums can not be generated on files larger 2 GB.\n";
+  }
+
 
   if (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "help") == 0))
   {
