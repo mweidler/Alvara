@@ -105,16 +105,15 @@ int validate(ContentList &referenceList, ContentList &contentList)
 int computeHashes(ContentList &contentList)
 {
   unsigned char sha1_output[HASH_LENGTH];
-  char sha1hex[2*HASH_LENGTH+1];
   char bytehex[2+1];
   int  rc= RC_OK;
   int  n=1;
   
   for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++, n++)
   {
-    ContentEntry *entry = iter->second;
-    sha1hex[0] = '\0';
-
+    ContentEntry *entry= iter->second;
+    entry->sha1.clear();
+    
     cout << "\rGenerating hashes... (" << n << "/" << contentList.size() << ")   " << flush;
 	
     if (S_ISREG(entry->meta.st_mode))
@@ -124,22 +123,24 @@ int computeHashes(ContentList &contentList)
         for (int i = 0; i < HASH_LENGTH; i++)
         {
           snprintf(bytehex, sizeof(bytehex), "%02x", sha1_output[i]);
-	  strncat(sha1hex, bytehex, sizeof(sha1hex));
+	  entry->sha1.append(bytehex);
 	}
       }
       else
       {
-        strncpy(sha1hex, "----------------no-hash-----------------", sizeof(sha1hex));
-        cerr << "Error on creating hash for '" << iter->first << "', errno=" << errno << ".\n";
-        rc=RC_ERROR;
+        entry->sha1.append("no hash (");
+        entry->sha1.append(strerror(errno));
+        entry->sha1.append(")");
+        cerr << "Error on creating hash for '" << iter->first << "' (" << strerror(errno) << ").\n";
+        rc= RC_ERROR;
       }
     }
     else
     {
-      strncpy(sha1hex, "----------------no-hash-----------------", sizeof(sha1hex));
+      entry->sha1.append("no hash (Not a file)");
     }
 
-    entry->sha1= sha1hex;
+    entry->sha1.resize(2*HASH_LENGTH, '-');
   }
   
   if (contentList.size() > 0)
@@ -217,8 +218,8 @@ void usage(const char *prgname)
   cout << prgname << ", file integrity validation.\n";
   cout << "Usage: " << prgname << " <command> <reference-file> <file-or-path> [<file-or-path>] ...\n";
   cout << "where <command> can be:\n";
-  cout << "   create:   Create a new reference file with reference information.\n";
-  cout << "   validate: Validate the given directories or files against the previously created reference information.\n";
+  cout << "   create or c:   Create a new reference file with reference information.\n";
+  cout << "   validate or v: Validate the given directories or files against the previously created reference information.\n";
   cout << "<reference-file> is a filename, where to store or read the reference information.\n";
   cout << "<file-or-path> is a filename or a directory name to investitage.\n";
 }
@@ -255,15 +256,15 @@ int main (int argc, char *argv[])
   if (argc < 4)
   {
     cout << argv[0] << ": missing parameter\n";
-    cout << "Try " << argv[0] << " -h or help for mor information.\n";
+    cout << "Try " << argv[0] << " -h or help for more information.\n";
     return RC_ERROR;
   }
 
-  if (strcmp(argv[1], "create") == 0)
+  if (strcmp(argv[1], "create") == 0 || strcmp(argv[1], "c") == 0) 
   {
     mode= 1;
   }
-  else if (strcmp(argv[1], "validate") == 0)
+  else if (strcmp(argv[1], "validate") == 0 || strcmp(argv[1], "v") == 0)
   {
     mode= 2;
   }
@@ -279,6 +280,7 @@ int main (int argc, char *argv[])
   ContentList contentList;
   for (int argn = 3; argn < argc; argn++)
   {
+    // do not resolve path names; relative paths must be possible!
     string basedir(argv[argn]);
     cout << "Generating content list for '" << basedir << "'..." << flush;
     contentList.Create(basedir);

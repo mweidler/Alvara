@@ -102,12 +102,13 @@ void ContentList::Dump(ostream &outputfile)
 {
   for (ContentListIterator iter= this->begin(); iter != this->end(); iter++)
   {
+    const string &name= iter->first;
     ContentEntry *entry= iter->second;
 
     outputfile << entry->meta.st_mode  << ";"
                << entry->meta.st_mtime << ";"
 	       << entry->sha1          << ";"
-	       << iter->first /*name*/ << ";"
+	       << name                 << ";"
 	       << entry->meta.st_size  << "\n";
   }
 }
@@ -147,7 +148,7 @@ void ContentList::Import(istream &inputfile)
 void ContentList::Create(string &basedir)
 {
   ContentEntry *entry= new ContentEntry();
-
+  
   lstat(basedir.c_str(), &entry->meta);
   if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
   {
@@ -172,7 +173,7 @@ void ContentList::ReadDirectory(string &dirname)
 {
   struct dirent *pDirEntry;
   string nextdirname;
-
+  
   DIR *pDirectory= opendir(dirname.c_str());
   if (pDirectory)
   {
