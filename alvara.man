@@ -1,0 +1,78 @@
+.\" Manpage for alvara.
+.\" Contact marc.weidler@web.de to correct errors or typos.
+.TH alvara 1 "30 Dec 2011" "0.1" "alvara man page"
+.SH NAME
+alvara \- file integrity validation
+.SH SYNOPSIS
+.B alvara [command]
+.I reference-file
+.I file-or-path
+.B ...
+.SH DESCRIPTION
+alvara is a command-line based file integrity validation tool.
+It computes the SHA1 message digest from a file's contents and stores
+it with other file meta information in a reference file for later comparison.
+
+The following information of each file are stored:
+ \- SHA1 message digest
+ \- access flags
+ \- modification time
+ \- size
+
+With these information, the tool is able to validate, if a previous
+investigated file or directory has been modified or altered.
+
+.SH USE CASES
+.TP
+a. Backup verification
+   You can use this....
+
+.TP
+b. Detect system modification
+   You can use this....
+
+.SH OPTIONS
+.TP
+.B command
+can be either
+.I create
+or
+.I validate
+dependend on you want to
+.I create
+a new reference file with the actual file system contents, or
+.I validate
+the file system contents against a previous generated referece file.
+.I create
+and
+.I validate
+can be abbreviated with
+.I c
+and
+.I v
+.TP
+.BI reference-file
+is the file where to write file information to or read from for later validation.
+.TP
+.BI file-or-path
+a single file or directory to be examined. You can give multiple files or directories to be examined.
+.SH EXAMPLES
+.TP
+a) Create reference of home directory:
+ $ alvara create   /tmp/reference.alv ~               
+.TP
+b) Check for modifications
+ $ alvara validate /tmp/reference.alv ~
+.TP
+c) Verify backup
+ $ alvara create ~/reference.alv .
+ $ cp -ra . /media/mybackup
+ $ alvara validate ~/reference.alv /media/mybackup
+
+.SH SEE ALSO
+.BR sha1sum(1)
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Marc Weidler (marc.weidler@web.de)
+
