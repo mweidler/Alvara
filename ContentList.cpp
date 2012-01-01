@@ -133,9 +133,9 @@ void ContentList::Import(istream &inputfile)
     std::getline(inputfile, name, ';');        // read thru simicolon
     std::getline(inputfile, size);             // read thru newline
 
-    entry->meta.st_mode  = (mode_t)atol(mode.c_str());
-    entry->meta.st_mtime = (time_t)atol(mtime.c_str());
-    entry->meta.st_size  = (off_t)atol(size.c_str());
+    entry->meta.st_mode  = (mode_t)atoll(mode.c_str());
+    entry->meta.st_mtime = (time_t)atoll(mtime.c_str());
+    entry->meta.st_size  = (off_t)atoll(size.c_str());
 
     this->insert(pair<string,ContentEntry *>(name,entry));
   }
