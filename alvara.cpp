@@ -123,8 +123,8 @@ int computeHashes(ContentList &contentList)
         for (int i = 0; i < HASH_LENGTH; i++)
         {
           snprintf(bytehex, sizeof(bytehex), "%02x", sha1_output[i]);
-	  entry->sha1.append(bytehex);
-	}
+          entry->sha1.append(bytehex);
+        }
       }
       else
       {

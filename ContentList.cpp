@@ -107,9 +107,9 @@ void ContentList::Dump(ostream &outputfile)
 
     outputfile << entry->meta.st_mode  << ";"
                << entry->meta.st_mtime << ";"
-	       << entry->sha1          << ";"
-	       << name                 << ";"
-	       << entry->meta.st_size  << "\n";
+               << entry->sha1          << ";"
+               << name                 << ";"
+               << entry->meta.st_size  << "\n";
   }
 }
 
@@ -150,6 +150,13 @@ void ContentList::Create(string &basedir)
   ContentEntry *entry= new ContentEntry();
   
   lstat(basedir.c_str(), &entry->meta);
+
+  // directory size may not be compared, it's size depends on the relative path length.
+  // Thus, only files get a valid/comparable size meta info.
+  if (!S_ISREG(entry->meta.st_mode))
+  {
+    entry->meta.st_size= 0;
+  }
   if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
   {
     ReadDirectory(basedir);
@@ -188,6 +195,13 @@ void ContentList::ReadDirectory(string &dirname)
       nextdirname.append("/");
       nextdirname.append(pDirEntry->d_name);
       lstat(nextdirname.c_str(), &entry->meta);
+      
+      // directory size may not be compared, it's size depends on the relative path length.
+      // Thus, only files get a valid/comparable size meta info.
+      if (!S_ISREG(entry->meta.st_mode))
+      {
+        entry->meta.st_size= 0;
+      }
       this->insert(pair<string,ContentEntry *>(nextdirname,entry));
 
       if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
