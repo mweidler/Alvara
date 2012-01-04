@@ -96,53 +96,6 @@ ContentEntry *ContentList::Find(string val)
 
 
 /*****************************************************************************
- * Writes time,sha1,size,... for later comparison to a file.
- *****************************************************************************/
-void ContentList::Dump(ostream &outputfile)
-{
-  for (ContentListIterator iter= this->begin(); iter != this->end(); iter++)
-  {
-    const string &name= iter->first;
-    ContentEntry *entry= iter->second;
-
-    outputfile << entry->meta.st_mode  << ";"
-               << entry->meta.st_mtime << ";"
-               << entry->sha1          << ";"
-               << name                 << ";"
-               << entry->meta.st_size  << "\n";
-  }
-}
-
-
-/*****************************************************************************
- * Reads the time,sha1,size,... for reference information from a file.
- *****************************************************************************/
-void ContentList::Import(istream &inputfile)
-{
-  string mode;
-  string mtime;
-  string name;
-  string size;
-  
-  while(!std::getline(inputfile, mode, ';').eof())
-  {
-    ContentEntry *entry= new ContentEntry();
-
-    std::getline(inputfile, mtime, ';');       // read thru simicolon
-    std::getline(inputfile, entry->sha1, ';'); // read thru simicolon
-    std::getline(inputfile, name, ';');        // read thru simicolon
-    std::getline(inputfile, size);             // read thru newline
-
-    entry->meta.st_mode  = (mode_t)atoll(mode.c_str());
-    entry->meta.st_mtime = (time_t)atoll(mtime.c_str());
-    entry->meta.st_size  = (off_t)atoll(size.c_str());
-
-    this->insert(pair<string,ContentEntry *>(name,entry));
-  }
-}
-
-
-/*****************************************************************************
  * Read a single file or contents of a directory recursively.
  *****************************************************************************/
 void ContentList::Create(string &basedir)

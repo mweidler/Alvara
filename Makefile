@@ -23,10 +23,11 @@ LOPT = $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
 
 #getconf LFS_CFLAGS: RHEL 5.7 64Bit:      empty
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-#                    Linux Mint 12 64Bit:
+#                    Linux Mint 12 64Bit: empty
 
-alvara: alvara.o sha1.o ContentList.o
-	g++ $(LOPT) alvara.o sha1.o ContentList.o -o alvara 
+alvara: alvara.cpp sha1.o ContentList.o StreamPersistence.o
+	echo "#define ALVARA_VERSION 0.1" >version.h
+	g++ $(COPT) $(LOPT) alvara.cpp sha1.o ContentList.o StreamPersistence.o -o alvara 
 
 sha1.o: sha1.c sha1.h
 	g++ $(COPT) -c sha1.c -o sha1.o
@@ -34,13 +35,13 @@ sha1.o: sha1.c sha1.h
 ContentList.o: ContentList.cpp ContentList.hpp
 	g++ $(COPT) -c ContentList.cpp -o ContentList.o
 
-alvara.o: alvara.cpp
-	g++ $(COPT) -c alvara.cpp -o alvara.o
+StreamPersistence.o: StreamPersistence.cpp StreamPersistence.hpp
+	g++ $(COPT) -c StreamPersistence.cpp -o StreamPersistence.o
 
 clobber: clean
 
 clean:
-	rm alvara alvara.o sha1.o ContentList.o
+	rm alvara sha1.o ContentList.o StreamPersistence.o
 	
 install:
 	@mkdir -p $(HOME)/bin

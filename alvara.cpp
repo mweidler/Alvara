@@ -26,6 +26,8 @@
 
 
 #include "ContentList.hpp"
+#include "StreamPersistence.hpp"
+#include "version.h"
 #include "sha1.h"
 #include <iostream>
 #include <sstream>
@@ -41,6 +43,9 @@ using namespace std;
 #define RC_ADDED    4
 #define RC_ERROR    16
 
+#ifndef ALVARA_VERSION
+  #define ALVARA_VERSION ""
+#endif
 
 /*****************************************************************************
  * Validate all entries in the reference list against the actual content list.
@@ -164,7 +169,7 @@ int writeReference(const char *filename, ContentList &contentList)
   if (outputfile.is_open())
   {
     cout << "Writing reference file '" << filename << "'..." << flush;
-    contentList.Dump(outputfile);
+    StreamPersistence::Save(contentList, outputfile);
     cout << " done.\n";
   }
   else
@@ -190,7 +195,7 @@ int validateContent(const char *filename, ContentList &contentList)
   {
     ContentList referenceList;
     cout << "Reading reference file '" << filename << "'..." << flush;
-    referenceList.Import(inputfile);
+    StreamPersistence::Load(referenceList, inputfile);
     cout << " done.\n";
 
     cout << "Validating content...\n";
@@ -215,7 +220,7 @@ int validateContent(const char *filename, ContentList &contentList)
  *****************************************************************************/
 void usage(const char *prgname)
 {
-  cout << prgname << ", file integrity validation.\n";
+  cout << prgname << " " << ALVARA_VERSION << " - file integrity validation.\n";
   cout << "Usage: " << prgname << " <command> <reference-file> <file-or-path> [<file-or-path>] ...\n";
   cout << "where <command> can be:\n";
   cout << "   create or c:   Create a new reference file with reference information.\n";

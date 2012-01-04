@@ -1,5 +1,5 @@
 //
-// ContentList.hpp
+// StreamPersistence.cpp
 //
 // COPYRIGHT (C) 2011 AND ALL RIGHTS RESERVED BY
 // MARC WEIDLER, ULRICHSTR. 12/1, 71672 MARBACH, GERMANY (MARC.WEIDLER@WEB.DE).
@@ -25,55 +25,57 @@
 // YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 
 
-#ifndef HEADER_CONTENTLIST_INC
-#define HEADER_CONTENTLIST_INC
-
-#include <map>
-#include <string>
-#include <sys/stat.h>
+#include "StreamPersistence.hpp"
+#include <stdlib.h>
+#include <string.h>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 
 
 /*****************************************************************************
- * Container for mata information and hash value.
+ * Writes time,sha1,size,... for later comparison to a file.
  *****************************************************************************/
-typedef struct ContentEntry
+void StreamPersistence::Save(ContentList &contentList, ostream &outputfile)
 {
-  struct stat meta;
-  string      sha1;
-} ContentEntry;
+  for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++)
+  {
+    const string &name= iter->first;
+    ContentEntry *entry= iter->second;
+
+    outputfile << entry->meta.st_mode  << ";"
+               << entry->meta.st_mtime << ";"
+               << entry->sha1          << ";"
+               << name                 << ";"
+               << entry->meta.st_size  << "\n";
+  }
+}
 
 
 /*****************************************************************************
- * Base type storage definition
+ * Reads the time,sha1,size,... for reference information from a file.
  *****************************************************************************/
-typedef std::map<string,ContentEntry *> BaseContentList;
-typedef BaseContentList::iterator ContentListIterator;
+void StreamPersistence::Load(ContentList &contentList, istream &inputfile)
+{
+  string mode;
+  string mtime;
+  string name;
+  string size;
+  
+  while(!std::getline(inputfile, mode, ';').eof())
+  {
+    ContentEntry *entry= new ContentEntry();
 
+    std::getline(inputfile, mtime, ';');       // read thru simicolon
+    std::getline(inputfile, entry->sha1, ';'); // read thru simicolon
+    std::getline(inputfile, name, ';');        // read thru simicolon
+    std::getline(inputfile, size);             // read thru newline
 
-/*****************************************************************************
- * Container class for storing and handling validation information.
- *****************************************************************************/
-class ContentList: public BaseContentList {
+    entry->meta.st_mode  = (mode_t)atoll(mode.c_str());
+    entry->meta.st_mtime = (time_t)atoll(mtime.c_str());
+    entry->meta.st_size  = (off_t)atoll(size.c_str());
 
-public:
-
-  /** Constructor */
-  ContentList();
-
-  /** Destructor */
-  virtual ~ContentList();
-
-  virtual void clear();
-  virtual void erase(string val);
-  void Create(string &val);
-  ContentEntry *Find(string val);
-  void ReadDirectory(string &dirname);
-
-protected:
-
-private:
-};
-
-#endif // ! HEADER_CONTENTLIST_INC
+    contentList.insert(pair<string,ContentEntry *>(name,entry));
+  }
+}

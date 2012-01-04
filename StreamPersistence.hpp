@@ -1,5 +1,5 @@
 //
-// ContentList.hpp
+// FilePersistence.hpp
 //
 // COPYRIGHT (C) 2011 AND ALL RIGHTS RESERVED BY
 // MARC WEIDLER, ULRICHSTR. 12/1, 71672 MARBACH, GERMANY (MARC.WEIDLER@WEB.DE).
@@ -25,55 +25,28 @@
 // YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 
 
-#ifndef HEADER_CONTENTLIST_INC
-#define HEADER_CONTENTLIST_INC
+#ifndef HEADER_STREAMPERSISTENCE_INC
+#define HEADER_STREAMPERSISTENCE_INC
 
-#include <map>
-#include <string>
-#include <sys/stat.h>
+#include "ContentList.hpp"
 
 using namespace std;
 
 
 /*****************************************************************************
- * Container for mata information and hash value.
+ * 
  *****************************************************************************/
-typedef struct ContentEntry
-{
-  struct stat meta;
-  string      sha1;
-} ContentEntry;
-
-
-/*****************************************************************************
- * Base type storage definition
- *****************************************************************************/
-typedef std::map<string,ContentEntry *> BaseContentList;
-typedef BaseContentList::iterator ContentListIterator;
-
-
-/*****************************************************************************
- * Container class for storing and handling validation information.
- *****************************************************************************/
-class ContentList: public BaseContentList {
+class StreamPersistence {
 
 public:
 
-  /** Constructor */
-  ContentList();
-
-  /** Destructor */
-  virtual ~ContentList();
-
-  virtual void clear();
-  virtual void erase(string val);
-  void Create(string &val);
-  ContentEntry *Find(string val);
-  void ReadDirectory(string &dirname);
+  static void Load(ContentList &contentList, istream &inputfile);
+  static void Save(ContentList &contentList, ostream &outputfile);
 
 protected:
 
 private:
 };
 
-#endif // ! HEADER_CONTENTLIST_INC
+#endif // ! HEADER_STREAMPERSISTENCE_INC
+
