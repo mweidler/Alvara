@@ -20,13 +20,17 @@
 
 COPT = -W -Wall -Werror -O2 $(shell getconf LFS_CFLAGS)
 LOPT = $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
+gitcount=$(shell git log --pretty=format:"" | wc -l)
+revisioncount=$(shell printf "%02d" $(gitcount))
+#projectversion=$(shell git describe --tags --long)
+projectversion=0.0
 
 #getconf LFS_CFLAGS: RHEL 5.7 64Bit:      empty
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #                    Linux Mint 12 64Bit: empty
 
 alvara: alvara.cpp sha1.o ContentList.o StreamPersistence.o
-	echo "#define ALVARA_VERSION 0.1" >version.h
+	@echo "#define ALVARA_VERSION \"$(projectversion).$(revisioncount)\"" >version.h
 	g++ $(COPT) $(LOPT) alvara.cpp sha1.o ContentList.o StreamPersistence.o -o alvara 
 
 sha1.o: sha1.c sha1.h
