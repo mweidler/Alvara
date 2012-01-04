@@ -67,9 +67,7 @@ public:
 
   virtual void clear();
   virtual void erase(string val);
-  void Create(string &val);
   ContentEntry *Find(string val);
-  void ReadDirectory(string &dirname);
 
 protected:
 

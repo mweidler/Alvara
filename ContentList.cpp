@@ -28,10 +28,8 @@
 #include "ContentList.hpp"
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <iostream>
-/
+
 using namespace std;
 
 
@@ -93,79 +91,3 @@ ContentEntry *ContentList::Find(string val)
   }
 }
 
-
-/*****************************************************************************
- * Read a single file or contents of a directory recursively.
- *****************************************************************************/
-void ContentList::Create(string &basedir)
-{
-  ContentEntry *entry= new ContentEntry();
-  
-  lstat(basedir.c_str(), &entry->meta);
-
-  // directory size may not be compared, it's size depends on the relative path length.
-  // Thus, only files get a valid/comparable size meta info.
-  if (!S_ISREG(entry->meta.st_mode))
-  {
-    entry->meta.st_size= 0;
-  }
-  if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
-  {
-    ReadDirectory(basedir);
-  }
-  
-  if (basedir != ".." && basedir != ".")
-  {
-    this->insert(pair<string,ContentEntry *>(basedir,entry));
-  }
-  else
-  {
-    delete entry;
-  }
-}
-
-
-/*****************************************************************************
- * Read contents of a directory recursively.
- *****************************************************************************/
-void ContentList::ReadDirectory(string &dirname)
-{
-  struct dirent *pDirEntry;
-  string nextdirname;
-  
-  DIR *pDirectory= opendir(dirname.c_str());
-  if (pDirectory)
-  {
-    while ((pDirEntry= readdir(pDirectory)))
-    {
-      if (strcmp(pDirEntry->d_name, "..") == 0 || strcmp(pDirEntry->d_name, ".") == 0)
-        continue;
-
-      ContentEntry *entry= new ContentEntry();
-
-      nextdirname= dirname;
-      nextdirname.append("/");
-      nextdirname.append(pDirEntry->d_name);
-      lstat(nextdirname.c_str(), &entry->meta);
-      
-      // directory size may not be compared, it's size depends on the relative path length.
-      // Thus, only files get a valid/comparable size meta info.
-      if (!S_ISREG(entry->meta.st_mode))
-      {
-        entry->meta.st_size= 0;
-      }
-      this->insert(pair<string,ContentEntry *>(nextdirname,entry));
-
-      if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
-      {
-        ReadDirectory(nextdirname);
-      }
-    }
-
-    closedir(pDirectory);
-  }
-  else
-  {
-    cerr << "Error during opening directory '" << dirname << "'.\n";
-  }
-}
