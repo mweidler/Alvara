@@ -26,6 +26,7 @@
 
 
 #include "Alvara.hpp"
+#include "version.h"
 #include <string.h>
 #include <iostream>
 
