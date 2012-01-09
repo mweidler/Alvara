@@ -1,7 +1,7 @@
-ALVARA file integrity validation
---------------------------------
+ALVARA - file integrity verification
+------------------------------------
 
-alvara is a command-line based file integrity validation tool.
+alvara is a command-line based file integrity verification tool.
 It computes the SHA1 message digest from a file and stores it
 it with other file information in a seperate file for later comparison.
 

@@ -2,14 +2,14 @@
 .\" Contact marc.weidler@web.de to correct errors or typos.
 .TH alvara 1 "30 Dec 2011" "0.1" "alvara man page"
 .SH NAME
-alvara \- file integrity validation
+alvara \- file integrity verification
 .SH SYNOPSIS
 .B alvara [command]
 .I reference-file
 .I file-or-path
 .B ...
 .SH DESCRIPTION
-alvara is a command-line based file integrity validation tool.
+alvara is a command-line based file integrity verification tool.
 It computes the SHA1 message digest from a file's contents and stores
 it with other file meta information in a reference file for later comparison.
 
@@ -19,7 +19,7 @@ The following information of each file are stored:
  \- modification time
  \- size
 
-With these information, the tool is able to validate, if a previous
+With these information, the tool is able to verify, if a previous
 investigated file or directory has been modified or altered.
 
 .SH USE CASES
