@@ -25,273 +25,15 @@
 // YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 
 
-#include "ContentList.hpp"
-#include "StreamPersistence.hpp"
-#include "version.h"
-#include "sha1.h"
+#include "Alvara.hpp"
+#include <string.h>
 #include <iostream>
-#include <sstream>
-#include <fstream>
-#include <errno.h>
-#include <dirent.h>
-#include <sys/stat.h>
 
 using namespace std;
-
-#define HASH_LENGTH 20
-#define RC_OK       0
-#define RC_MODIFIED 1
-#define RC_DELETED  2
-#define RC_ADDED    4
-#define RC_ERROR    16
 
 #ifndef ALVARA_VERSION
   #define ALVARA_VERSION ""
 #endif
-
-/*****************************************************************************
- * Validate all entries in the reference list against the actual content list.
- *****************************************************************************/
-int validate(ContentList &referenceList, ContentList &contentList)
-{
-  int rc= RC_OK;
-
-  for (ContentListIterator iter= referenceList.begin(); iter != referenceList.end(); iter++)
-  {
-    ContentEntry *reference = iter->second;
-    ContentEntry *content = contentList.Find(iter->first);
-
-    if (content)
-    {
-      if (reference->sha1 != content->sha1)
-      {
-        cout << "'" << iter->first << "' has different content.\n";
-        rc|= RC_MODIFIED;
-      }
-      if (reference->meta.st_size != content->meta.st_size)
-      {
-        cout << "'" << iter->first << "' has different size.\n";
-        rc|= RC_MODIFIED;
-      }
-      if (reference->meta.st_mtime != content->meta.st_mtime)
-      {
-        cout << "'" << iter->first << "' has different modification time.\n";
-        rc|= RC_MODIFIED;
-      }
-      if (reference->meta.st_mode != content->meta.st_mode)
-      {
-        cout << "'" << iter->first << "' has different file mode flags.\n";
-        rc|= RC_MODIFIED;
-      }
-
-      contentList.erase(iter->first);
-    }
-    else
-    {
-      cout << "'" << iter->first << "' has been deleted.\n";
-      rc|= RC_DELETED;
-    }
-  }
-
-
-  // all remaining entries in the content list were not in the reference list
-  // and therefore newly created/added.
-  for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++)
-  {
-    cout << "'" << iter->first << "' has been added.\n";
-    rc|= RC_ADDED;
-  }
-
-  return rc;
-}
-
-
-/*****************************************************************************
- * Compute all hashes for files in the list.
- *****************************************************************************/
-int computeHashes(ContentList &contentList)
-{
-  unsigned char sha1_output[HASH_LENGTH];
-  char bytehex[2+1];
-  int  rc= RC_OK;
-  int  n=1;
-  
-  for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++, n++)
-  {
-    ContentEntry *entry= iter->second;
-    entry->sha1.clear();
-    
-    cout << "\rGenerating hashes... (" << n << "/" << contentList.size() << ")   " << flush;
-	
-    if (S_ISREG(entry->meta.st_mode))
-    {
-      if (sha1_file( iter->first.c_str(), sha1_output) == 0)
-      {
-        for (int i = 0; i < HASH_LENGTH; i++)
-        {
-          snprintf(bytehex, sizeof(bytehex), "%02x", sha1_output[i]);
-          entry->sha1.append(bytehex);
-        }
-      }
-      else
-      {
-        entry->sha1.append("no hash (");
-        entry->sha1.append(strerror(errno));
-        entry->sha1.append(")");
-        cerr << "Error on creating hash for '" << iter->first << "' (" << strerror(errno) << ").\n";
-        rc= RC_ERROR;
-      }
-    }
-    else
-    {
-      entry->sha1.append("no hash (Not a file)");
-    }
-
-    entry->sha1.resize(2*HASH_LENGTH, '-');
-  }
-  
-  if (contentList.size() > 0)
-  {
-    cout << "\n";
-  }
-
-  return rc;
-}
-
-
-/*****************************************************************************
- * 
- *****************************************************************************/
-int writeReference(const char *filename, ContentList &contentList)
-{
-  int rc= RC_OK;
-  ofstream outputfile;
-
-  outputfile.open(filename, ios::out);
-  if (outputfile.is_open())
-  {
-    cout << "Writing reference file '" << filename << "'..." << flush;
-    StreamPersistence::Save(contentList, outputfile);
-    cout << " done.\n";
-  }
-  else
-  {
-    cerr << "Could not create reference file '" << filename << "'.\n";
-    rc|= RC_ERROR;
-  }
-  
-  return rc;
-}
-
-
-/*****************************************************************************
- * 
- *****************************************************************************/
-int validateContent(const char *filename, ContentList &contentList)
-{
-  int rc= RC_OK;
-  ifstream inputfile;
-
-  inputfile.open(filename, ios::in);
-  if (inputfile.is_open())
-  {
-    ContentList referenceList;
-    cout << "Reading reference file '" << filename << "'..." << flush;
-    StreamPersistence::Load(referenceList, inputfile);
-    cout << " done.\n";
-
-    cout << "Validating content...\n";
-    rc|= validate(referenceList, contentList);
-    if (rc == 0)
-    {
-       cout << "File integrity validated, no modifications detected.\n";
-    }
-  }
-  else
-  {
-    cerr << "Could not open reference file '" << filename << "'.\n";
-    rc|= RC_ERROR;
-  }
-  
-  return rc;
-}
-
-
-/*****************************************************************************
- * Read contents of a directory recursively.
- *****************************************************************************/
-void ReadDirectory(ContentList &contentList, string &dirname)
-{
-  struct dirent *pDirEntry;
-  string nextdirname;
-  
-  DIR *pDirectory= opendir(dirname.c_str());
-  if (pDirectory)
-  {
-    while ((pDirEntry= readdir(pDirectory)))
-    {
-      if (strcmp(pDirEntry->d_name, "..") == 0 || strcmp(pDirEntry->d_name, ".") == 0)
-        continue;
-
-      ContentEntry *entry= new ContentEntry();
-
-      nextdirname= dirname;
-      nextdirname.append("/");
-      nextdirname.append(pDirEntry->d_name);
-      lstat(nextdirname.c_str(), &entry->meta);
-      
-      // directory size may not be compared, it's size depends on the relative path length.
-      // Thus, only files get a valid/comparable size meta info.
-      if (!S_ISREG(entry->meta.st_mode))
-      {
-        entry->meta.st_size= 0;
-      }
-      contentList.insert(pair<string,ContentEntry *>(nextdirname,entry));
-
-      if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
-      {
-        ReadDirectory(contentList, nextdirname);
-      }
-    }
-
-    closedir(pDirectory);
-  }
-  else
-  {
-    cerr << "Error during opening directory '" << dirname << "'.\n";
-  }
-}
-
-
-/*****************************************************************************
- * Read a single file or contents of a directory recursively.
- *****************************************************************************/
-void Create(ContentList &contentList, string &basedir)
-{
-  ContentEntry *entry= new ContentEntry();
-  
-  lstat(basedir.c_str(), &entry->meta);
-
-  // directory size may not be compared, it's size depends on the relative path length.
-  // Thus, only files get a valid/comparable size meta info.
-  if (!S_ISREG(entry->meta.st_mode))
-  {
-    entry->meta.st_size= 0;
-  }
-  if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
-  {
-    ReadDirectory(contentList, basedir);
-  }
-  
-  if (basedir != ".." && basedir != ".")
-  {
-    contentList.insert(pair<string,ContentEntry *>(basedir,entry));
-  }
-  else
-  {
-    delete entry;
-  }
-}
 
 
 /*****************************************************************************
@@ -321,6 +63,7 @@ int main (int argc, char *argv[])
 {
   int rc= RC_OK;
   int mode= 0;
+  Alvara alvara;
 
   // validating large file support
   struct stat meta;
@@ -361,28 +104,28 @@ int main (int argc, char *argv[])
 
 
   // Generate content list...
-  ContentList contentList;
   for (int argn = 3; argn < argc; argn++)
   {
     // do not resolve path names; relative paths must be possible!
     string basedir(argv[argn]);
     cout << "Generating content list for '" << basedir << "'..." << flush;
-    Create(contentList, basedir);
+    alvara.Create(basedir);
     cout << " done.\n";
   }
 
 
   // and hashes.
-  rc|= computeHashes(contentList);
+  rc|= alvara.computeHashes();
 
   if (mode == 1)
   {
-    rc|= writeReference(argv[2], contentList);
+    rc|= alvara.writeReference(argv[2]);
   }
   else if (mode == 2)
   {
-    rc|= validateContent(argv[2], contentList);
+    rc|= alvara.validateContent(argv[2]);
   }
 
   return rc;
 }
+

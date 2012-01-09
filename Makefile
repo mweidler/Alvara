@@ -26,9 +26,9 @@ TAGVERSION = $(shell git describe HEAD | sed 's/-/./;s/\([^-]*\).*/\1/')
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #                    Linux Mint 12 64Bit: empty
 
-alvara: alvara.cpp sha1.o ContentList.o StreamPersistence.o
+alvara: alvara.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o
 	@echo "#define ALVARA_VERSION \"$(TAGVERSION)\"" >version.h
-	g++ $(COPT) $(LOPT) alvara.cpp sha1.o ContentList.o StreamPersistence.o -o alvara 
+	g++ $(COPT) $(LOPT) alvara.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o -o alvara 
 
 sha1.o: sha1.c sha1.h
 	g++ $(COPT) -c sha1.c -o sha1.o
@@ -36,13 +36,16 @@ sha1.o: sha1.c sha1.h
 ContentList.o: ContentList.cpp ContentList.hpp
 	g++ $(COPT) -c ContentList.cpp -o ContentList.o
 
+Alvara.o: Alvara.cpp Alvara.hpp
+	g++ $(COPT) -c Alvara.cpp -o Alvara.o
+
 StreamPersistence.o: StreamPersistence.cpp StreamPersistence.hpp
 	g++ $(COPT) -c StreamPersistence.cpp -o StreamPersistence.o
 
 clobber: clean
 
 clean:
-	rm alvara sha1.o ContentList.o StreamPersistence.o
+	rm alvara sha1.o ContentList.o StreamPersistence.o Alvara.o
 	
 install:
 	@mkdir -p $(HOME)/bin
