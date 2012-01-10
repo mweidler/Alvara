@@ -256,6 +256,8 @@ void Alvara::ReadDirectory(string &dirname)
 void Alvara::Create(string &basedir)
 {
   ContentEntry *entry= new ContentEntry();
+
+  cout << "Scanning '" << basedir << "'..." << flush;
   
   lstat(basedir.c_str(), &entry->meta);
 
@@ -278,5 +280,7 @@ void Alvara::Create(string &basedir)
   {
     delete entry;
   }
+
+  cout << " done.\n";
 }
 

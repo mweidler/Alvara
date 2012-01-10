@@ -42,13 +42,26 @@ using namespace std;
  *****************************************************************************/
 void usage(const char *prgname)
 {
-  cout << prgname << " " << ALVARA_VERSION << " - file integrity validation.\n";
-  cout << "Usage: " << prgname << " <command> <reference-file> <file-or-path> [<file-or-path>] ...\n";
-  cout << "where <command> can be:\n";
-  cout << "   create or c:   Create a new reference file with reference information.\n";
-  cout << "   validate or v: Validate the given directories or files against the previously created reference information.\n";
-  cout << "<reference-file> is a filename, where to store or read the reference information.\n";
-  cout << "<file-or-path> is a filename or a directory name to investitage.\n";
+  cout << prgname << " " << ALVARA_VERSION << " - file integrity verification.\n";
+  cout << "Usage: " << prgname << " <options> <file-or-path> [<file-or-path>] ...\n";
+  cout << "where <options> can be:\n";
+  cout << "   --create, -c or c: Create a new reference file with reference information.\n";
+  cout << "   --verify, -v or v: Verigy the given directories or files against previously created reference information.\n";
+  cout << "   --file,   -f or f: Read or write reference information from this file.\n";
+  cout << "   --quiet,  -q or q: Be quiet. Do not print information or progress.\n";
+  cout << "   --verbose        : Print as many information as possible.\n";
+  cout << "   --exclude        : Exclude path/file from verification.\n";
+  cout << "   --ignore, -i or i: Ignore differences of (c)ontent, (s)ize, (m)odification, (f)lags, (d)eletion, (a)dded.\n";
+  cout << "<file-or-path> filename or a directory name to investitage.\n";
+  cout << "\n";
+  cout << "Examples:\n";
+  cout << "1. Create reference file 'reference' with contents of directory '/media/data' and '/media/music':\n";
+  cout << "     " << prgname << " cf ~/reference /media/data /media/music\n";
+  cout << "2. Verify the obove created reference to the current content:\n";
+  cout << "     " << prgname << " --verify --file=~/reference /media/data /media/music\n";
+  cout << "3. Create reference of home directory, but ignore '.ssh' and '.dbus' directories:\n";
+  cout << "     " << prgname << " --create --file=/data/ref --exclude='.ssh' --exclude='.dbus' ~\n";
+
 }
 
 
@@ -66,7 +79,7 @@ int main (int argc, char *argv[])
   int mode= 0;
   Alvara alvara;
 
-  // validating large file support
+  // ensure large file support
   struct stat meta;
   if (sizeof(meta.st_size) < 8)
   {
@@ -92,7 +105,7 @@ int main (int argc, char *argv[])
   {
     mode= 1;
   }
-  else if (strcmp(argv[1], "validate") == 0 || strcmp(argv[1], "v") == 0)
+  else if (strcmp(argv[1], "verify") == 0 || strcmp(argv[1], "v") == 0)
   {
     mode= 2;
   }
@@ -109,9 +122,7 @@ int main (int argc, char *argv[])
   {
     // do not resolve path names; relative paths must be possible!
     string basedir(argv[argn]);
-    cout << "Generating content list for '" << basedir << "'..." << flush;
     alvara.Create(basedir);
-    cout << " done.\n";
   }
 
 
