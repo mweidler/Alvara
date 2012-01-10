@@ -29,12 +29,36 @@
 #include "version.h"
 #include <string.h>
 #include <iostream>
+#include <getopt.h>
 
 using namespace std;
 
 #ifndef ALVARA_VERSION
   #define ALVARA_VERSION ""
 #endif
+
+
+static int create_flag= 0;
+static int verify_flag= 0;
+static int verbose_flag= VERBOSITY_MESSAGE;
+static int help_flag= 0;
+
+static struct option long_options[] =
+{
+  // These options set a flag.
+  { "create",  no_argument,       &create_flag,  1 },
+  { "verify",  no_argument,       &verify_flag,  1 },
+  { "quiet",   no_argument,       &verbose_flag, VERBOSITY_QUIET },
+  { "verbose", no_argument,       &verbose_flag, VERBOSITY_VERBOSE },
+  { "help",    no_argument,       &help_flag,    1 },
+  { "usage",   no_argument,       &help_flag,    1 },
+        
+  // These options don't set a flag, we distinguish them by their indices.
+  { "file",    required_argument, 0, 'f' },
+  { "exclude", required_argument, 0, 'x' },
+  { "ignore",  required_argument, 0, 'i' },
+  { 0, 0, 0, 0 }
+};
 
 
 /*****************************************************************************
@@ -44,19 +68,21 @@ void usage(const char *prgname)
 {
   cout << prgname << " " << ALVARA_VERSION << " - file integrity verification.\n";
   cout << "Usage: " << prgname << " <options> <file-or-path> [<file-or-path>] ...\n";
-  cout << "where <options> can be:\n";
+  cout << "where <options> start at least with one '-' and can be:\n";
   cout << "   --create, -c or c: Create a new reference file with reference information.\n";
-  cout << "   --verify, -v or v: Verigy the given directories or files against previously created reference information.\n";
+  cout << "   --verify, -v or v: Verify the given directories or files against previously created reference information.\n";
   cout << "   --file,   -f or f: Read or write reference information from this file.\n";
+  cout << "   --exclude -x or x: Exclude path/file from verification.\n";
+  cout << "   --ignore, -i or i: Ignore differences of (c)ontent, (s)ize, (m)odification, (f)lags, (d)eletion, (a)dded.\n";
   cout << "   --quiet,  -q or q: Be quiet. Do not print information or progress.\n";
   cout << "   --verbose        : Print as many information as possible.\n";
-  cout << "   --exclude        : Exclude path/file from verification.\n";
-  cout << "   --ignore, -i or i: Ignore differences of (c)ontent, (s)ize, (m)odification, (f)lags, (d)eletion, (a)dded.\n";
+  cout << "   --help,   -h or h: Print this command usage.\n";
+  cout << "   --usage,  -u or u: Print this command usage.\n";
   cout << "<file-or-path> filename or a directory name to investitage.\n";
   cout << "\n";
   cout << "Examples:\n";
   cout << "1. Create reference file 'reference' with contents of directory '/media/data' and '/media/music':\n";
-  cout << "     " << prgname << " cf ~/reference /media/data /media/music\n";
+  cout << "     " << prgname << " -cf ~/reference /media/data /media/music\n";
   cout << "2. Verify the obove created reference to the current content:\n";
   cout << "     " << prgname << " --verify --file=~/reference /media/data /media/music\n";
   cout << "3. Create reference of home directory, but ignore '.ssh' and '.dbus' directories:\n";
@@ -70,58 +96,125 @@ void usage(const char *prgname)
  *
  * TODO
  *
- * create <reference-file> file1 dir1 ...
- * validate <reference-file> file1 dir1 ...
  *******************************************************************************************/ 
 int main (int argc, char *argv[])
 {
   int rc= RC_OK;
-  int mode= 0;
+  int optcode= 0;
   Alvara alvara;
-
+  const char *reffilename= NULL;
+  
   // ensure large file support
   struct stat meta;
   if (sizeof(meta.st_size) < 8)
   {
     cout << "ATTENTION: " << argv[0] << " was compiled without support for large files.\n";
-    cout << "           Checksums can not be generated on files larger 2 GB.\n";
+    cout << "           Files larger than 2 GB can not be handled. This program is not usable.\n";
+    return RC_ERROR;
   }
 
-
-  if (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "help") == 0))
+  if (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0))
   {
     usage(argv[0]);
     return RC_OK;
   }
 
-  if (argc < 4)
+  if (argc < 3)
   {
     cout << argv[0] << ": missing parameter\n";
-    cout << "Try " << argv[0] << " -h or help for more information.\n";
+    cout << "Try " << argv[0] << " -h or --help for more information.\n";
     return RC_ERROR;
   }
 
-  if (strcmp(argv[1], "create") == 0 || strcmp(argv[1], "c") == 0) 
+  while (1)
   {
-    mode= 1;
+    /* getopt_long stores the option index here. */
+    int option_index = 0;
+     
+    optcode = getopt_long_only(argc, argv, "cvqhuf:x:i:", long_options, &option_index);
+     
+    /* Detect the end of the options. */
+    if (optcode == -1)
+      break;
+     
+    switch (optcode)
+    {
+      case 0:
+        /* If this option set a flag, do nothing else now. */
+        if (long_options[option_index].flag != 0)
+          break;
+	   
+        cout << "option " << long_options[option_index].name;
+        if (optarg)
+             cout << " with arg " << optarg;
+        cout << "\n";
+        break;
+     
+      case 'q':
+        verbose_flag= VERBOSITY_QUIET;
+        break;
+     
+      case 'c':
+        create_flag= 1;
+        break;
+     
+      case 'v':
+        verify_flag= 1;
+        break;
+     
+      case 'f':
+        reffilename= optarg;
+        break;
+
+      case 'u':
+      case 'h':
+        help_flag=1;
+        break;
+
+      case '?':
+       /* getopt_long already printed an error message. */
+       break;
+     
+      default:
+       cout << argv[0] << ": program bug " << optcode << "\n";
+       return RC_ERROR;
+    }
   }
-  else if (strcmp(argv[1], "verify") == 0 || strcmp(argv[1], "v") == 0)
+
+  if (help_flag)
   {
-    mode= 2;
+    usage(argv[0]);
+    return RC_OK;
   }
-  else
+     
+  if ((create_flag == 0) && (verify_flag == 0))
   {
-    cout << argv[0] << ": missing or unknown command\n";
-    cout << "Try " << argv[0] << " -h or help for mor information.\n";
+    cout << argv[0] << ": command '--create' or '--verify' is mandatory\n";
+    cout << "Try " << argv[0] << " -h or --help for more information.\n";
     return RC_ERROR;
   }
 
+  if (create_flag && verify_flag)
+  {
+    cout << argv[0] << ": choose either --create or --verify\n";
+    cout << "Try " << argv[0] << " -h or --help for more information.\n";
+    return RC_ERROR;
+  }
+
+  if (!reffilename)
+  {
+    cout << argv[0] << ": reference filename is mandatory\n";
+    cout << "Try " << argv[0] << " -h or --help for more information.\n";
+    return RC_ERROR;
+  }
+
+  alvara.SetVerbosity(verbose_flag);
 
   // Generate content list...
-  for (int argn = 3; argn < argc; argn++)
+  while (optind < argc)
   {
     // do not resolve path names; relative paths must be possible!
-    string basedir(argv[argn]);
+    string basedir(argv[optind++]);
     alvara.Create(basedir);
   }
 
@@ -129,13 +222,13 @@ int main (int argc, char *argv[])
   // and hashes.
   rc|= alvara.computeHashes();
 
-  if (mode == 1)
+  if (create_flag)
   {
-    rc|= alvara.writeReference(argv[2]);
+    rc|= alvara.writeReference(reffilename);
   }
-  else if (mode == 2)
+  if (verify_flag)
   {
-    rc|= alvara.validateContent(argv[2]);
+    rc|= alvara.validateContent(reffilename);
   }
 
   return rc;

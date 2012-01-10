@@ -37,6 +37,15 @@
 
 using namespace std;
 
+#define MESSAGE if (verbosity >= VERBOSITY_MESSAGE)
+#define VERBOSE if (verbosity >= VERBOSITY_VERBOSE)
+
+
+void Alvara::SetVerbosity(int newverbosity)
+{
+   verbosity = newverbosity;
+}
+
 /*****************************************************************************
  * Validate all entries in the reference list against the actual content list.
  *****************************************************************************/
@@ -109,7 +118,7 @@ int Alvara::computeHashes()
     ContentEntry *entry= iter->second;
     entry->sha1.clear();
     
-    cout << "\rGenerating hashes... (" << n << "/" << contentList.size() << ")   " << flush;
+    VERBOSE cout << "\rGenerating hashes... (" << n << "/" << contentList.size() << ")   " << flush;
 	
     if (S_ISREG(entry->meta.st_mode))
     {
@@ -140,7 +149,7 @@ int Alvara::computeHashes()
   
   if (contentList.size() > 0)
   {
-    cout << "\n";
+    VERBOSE cout << "\n";
   }
 
   return rc;
@@ -158,9 +167,9 @@ int Alvara::writeReference(const char *filename)
   outputfile.open(filename, ios::out);
   if (outputfile.is_open())
   {
-    cout << "Writing reference file '" << filename << "'..." << flush;
+    VERBOSE cout << "Writing reference file '" << filename << "'..." << flush;
     StreamPersistence::Save(contentList, outputfile);
-    cout << " done.\n";
+    VERBOSE cout << " done.\n";
   }
   else
   {
@@ -183,15 +192,15 @@ int Alvara::validateContent(const char *filename)
   inputfile.open(filename, ios::in);
   if (inputfile.is_open())
   {
-    cout << "Reading reference file '" << filename << "'..." << flush;
+    VERBOSE cout << "Reading reference file '" << filename << "'..." << flush;
     StreamPersistence::Load(referenceList, inputfile);
-    cout << " done.\n";
+    VERBOSE cout << " done.\n";
 
-    cout << "Validating content...\n";
+    VERBOSE cout << "Validating content...\n";
     rc|= validate();
     if (rc == 0)
     {
-       cout << "File integrity validated, no modifications detected.\n";
+       MESSAGE cout << "No modifications detected.\n";
     }
   }
   else
@@ -241,6 +250,7 @@ void Alvara::ReadDirectory(string &dirname)
       }
     }
 
+    VERBOSE cout << "\rScanning...  (" << contentList.size() << ")       " << flush;
     closedir(pDirectory);
   }
   else
@@ -257,8 +267,6 @@ void Alvara::Create(string &basedir)
 {
   ContentEntry *entry= new ContentEntry();
 
-  cout << "Scanning '" << basedir << "'..." << flush;
-  
   lstat(basedir.c_str(), &entry->meta);
 
   // directory size may not be compared, it's size depends on the relative path length.
@@ -281,6 +289,6 @@ void Alvara::Create(string &basedir)
     delete entry;
   }
 
-  cout << " done.\n";
+  VERBOSE cout << "\rScanning '" << basedir << "'...  (" << contentList.size() << ")" << " done.\n";
 }
 

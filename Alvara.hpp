@@ -40,6 +40,9 @@ using namespace std;
 
 #define HASH_LENGTH 20
 
+#define VERBOSITY_QUIET   0
+#define VERBOSITY_MESSAGE 1
+#define VERBOSITY_VERBOSE 2
 
 /*****************************************************************************
  * 
@@ -55,13 +58,14 @@ public:
 
   void ReadDirectory(string &dirname);
   void Create(string &basedir);
+  void SetVerbosity(int verbosity);
 
 protected:
-
   ContentList referenceList;
   ContentList contentList;
 
 private:
+  int verbosity;
 };
 
 #endif // ! HEADER_ALVARA_INC
