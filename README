@@ -34,9 +34,14 @@ Environment:
     But it should be compileable and usable on all other Unix-like environments.
     
 Usage example:
-    alvara create   /tmp/reference.alv ~               # create reference of home directory
-    alvara validate /tmp/reference.alv ~               # Check for modifications
-    alvara validate /tmp/reference.alv /media/mybackup # Verify backup
+    Create reference file 'reference' with contents of directory '/media/data' and '/media/music':
+      alvara -cf ~/reference /media/data /media/music
+
+    Verify the above created reference against the current content, but ignore file's timestamp:
+      alvara --verify --file=~/reference --ignore=time /media/data /media/music
+
+    Create reference of home directory, but exclude '.ssh' and '.dbus' directories:
+      alvara --create --file=/data/ref --exclude='.ssh' --exclude=.dbus ~
 
 
 COPYRIGHT (C) 2010-2012 AND ALL RIGHTS RESERVED BY
@@ -61,3 +66,4 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE. THE ENTIRE RISK AS TO THE QUALITY AND
 PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE,
 YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
