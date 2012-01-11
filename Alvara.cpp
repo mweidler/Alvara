@@ -73,11 +73,13 @@ bool Alvara::isExcluded(const char *filename)
 
   
 /*****************************************************************************
- * Validate all entries in the reference list against the actual content list.
+ * Verify all entries in the reference list against the actual content list.
  *****************************************************************************/
-int Alvara::Validate()
+int Alvara::VerifyContent()
 {
   int rc= RC_OK;
+
+  PROGRESS cout << "Verifying content...\n";
 
   for (ContentListIterator iter= referenceList.begin(); iter != referenceList.end(); iter++)
   {
@@ -126,6 +128,11 @@ int Alvara::Validate()
       cout << "'" << iter->first << "' has been added.\n";
       rc|= RC_ADDED;
     }
+  }
+
+  if (rc == 0)
+  {
+     INFO cout << "No differences detected.\n";
   }
 
   return rc;
@@ -217,7 +224,7 @@ int Alvara::WriteReference(const char *filename)
 /*****************************************************************************
  * 
  *****************************************************************************/
-int Alvara::VerifyContent(const char *filename)
+int Alvara::ReadReference(const char *filename)
 {
   int rc= RC_OK;
   ifstream inputfile;
@@ -228,13 +235,6 @@ int Alvara::VerifyContent(const char *filename)
     PROGRESS cout << "Reading reference file '" << filename << "'..." << flush;
     StreamPersistence::Load(referenceList, inputfile);
     PROGRESS cout << " done.\n";
-
-    PROGRESS cout << "Verifying content...\n";
-    rc|= Validate();
-    if (rc == 0)
-    {
-       INFO cout << "No differences detected.\n";
-    }
   }
   else
   {

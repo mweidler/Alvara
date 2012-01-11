@@ -61,8 +61,10 @@ class Alvara {
 public:
   void Scan(string &basedir);
   int  ComputeHashes();
+  int  VerifyContent();
+
   int  WriteReference(const char *filename);
-  int  VerifyContent(const char *filename);
+  int  ReadReference(const char *filename);
 
   void SetVerbosity(int verbosity);
   void SetIgnorance(int ignorance);
@@ -71,7 +73,7 @@ public:
 protected:
   bool isExcluded(const char *filename);
   void ReadDirectory(string &dirname);
-  int  Validate();
+
     
 private:
   ContentList referenceList;

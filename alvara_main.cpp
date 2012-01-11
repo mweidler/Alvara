@@ -284,6 +284,12 @@ int main (int argc, char *argv[])
   alvara.SetVerbosity(verbosity);
   alvara.SetIgnorance(ignorance);
 
+  if (command == COMMAND_VERIFY)
+  {
+    rc= alvara.ReadReference(ref_filename);
+    if (rc != RC_OK)
+      return rc;
+  }
 
   // Generate content list...
   while (optind < argc)
@@ -293,7 +299,6 @@ int main (int argc, char *argv[])
     alvara.Scan(basedir);
   }
 
-
   // and hashes.
   rc|= alvara.ComputeHashes();
 
@@ -301,9 +306,10 @@ int main (int argc, char *argv[])
   {
     rc|= alvara.WriteReference(ref_filename);
   }
+
   if (command == COMMAND_VERIFY)
   {
-    rc|= alvara.VerifyContent(ref_filename);
+    rc|= alvara.VerifyContent();
   }
 
   return rc;
