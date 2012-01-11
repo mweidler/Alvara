@@ -26,9 +26,9 @@ TAGVERSION = $(shell git describe HEAD | sed 's/-/./;s/\([^-]*\).*/\1/')
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #                    Linux Mint 12 64Bit: empty
 
-alvara: alvara.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o
+alvara: alvara_main.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o
 	@echo "#define ALVARA_VERSION \"$(TAGVERSION)\"" >version.h
-	g++ $(COPT) $(LOPT) alvara.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o -o alvara 
+	g++ $(COPT) $(LOPT) alvara_main.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o -o alvara 
 
 sha1.o: sha1.c sha1.h
 	g++ $(COPT) -c sha1.c -o sha1.o
