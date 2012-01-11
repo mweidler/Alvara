@@ -42,6 +42,7 @@ static int create_flag= 0;
 static int verify_flag= 0;
 static int verbose_flag= VERBOSITY_INFO;
 static int help_flag= 0;
+static int ignore_flag= 0;
 
 static struct option long_options[] =
 {
@@ -73,7 +74,7 @@ void usage(const char *prgname)
   cout << "   --verify,   -v or v: Verify the given directories or files against previously created reference information.\n";
   cout << "   --file,     -f or f: Read or write reference information from this file.\n";
   cout << "   --exclude,  -e or e: Exclude path/file from verification.\n";
-  cout << "   --ignore,   -i or i: Ignore differences of (c)ontent, (s)ize, (m)odification, (f)lags, (d)eletion, (a)dded.\n";
+  cout << "   --ignore,   -i or i: Ignore differences of (c)ontent, (s)ize, (t)ime, (f)lags, (d)eletion, (a)dded.\n";
   cout << "   --quiet,    -q or q: Be quiet. Print only detected differences.\n";
   cout << "   --progress, -p or p: Show progress and print as many information as possible.\n";
   cout << "   --help,     -h or h: Print this command usage.\n";
@@ -170,6 +171,15 @@ int main (int argc, char *argv[])
         reffilename= optarg;
         break;
 
+      case 'i':
+        if (strchr(optarg, 'c')) ignore_flag |= IGNORE_CONTENT;
+        if (strchr(optarg, 's')) ignore_flag |= IGNORE_SIZE;
+        if (strchr(optarg, 't')) ignore_flag |= IGNORE_TIME;
+        if (strchr(optarg, 'f')) ignore_flag |= IGNORE_FLAGS;
+        if (strchr(optarg, 'd')) ignore_flag |= IGNORE_DELETION;
+        if (strchr(optarg, 'a')) ignore_flag |= IGNORE_ADDED;
+        break;
+
       case 'u':
       case 'h':
         help_flag=1;
@@ -220,6 +230,7 @@ int main (int argc, char *argv[])
   }
 
   alvara.SetVerbosity(verbose_flag);
+  alvara.SetIgnorance(ignore_flag);
 
   // Generate content list...
   while (optind < argc)

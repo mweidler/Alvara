@@ -44,6 +44,14 @@ using namespace std;
 #define VERBOSITY_INFO     1
 #define VERBOSITY_PROGRESS 2
 
+#define IGNORE_CONTENT     1
+#define IGNORE_SIZE        2
+#define IGNORE_TIME        4
+#define IGNORE_FLAGS       8
+#define IGNORE_DELETION   16
+#define IGNORE_ADDED      32
+
+
 /*****************************************************************************
  * 
  *****************************************************************************/
@@ -59,6 +67,7 @@ public:
   void ReadDirectory(string &dirname);
   void Create(string &basedir);
   void SetVerbosity(int verbosity);
+  void SetIgnorance(int ignoremask);
 
 protected:
   ContentList referenceList;
@@ -66,6 +75,7 @@ protected:
 
 private:
   int verbosity;
+  int ignoreMask;
 };
 
 #endif // ! HEADER_ALVARA_INC

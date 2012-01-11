@@ -46,6 +46,11 @@ void Alvara::SetVerbosity(int newverbosity)
    verbosity = newverbosity;
 }
 
+void Alvara::SetIgnorance(int newignoremask)
+{
+   ignoreMask = newignoremask;
+}
+
 /*****************************************************************************
  * Validate all entries in the reference list against the actual content list.
  *****************************************************************************/
@@ -60,22 +65,22 @@ int Alvara::validate()
 
     if (content)
     {
-      if (reference->sha1 != content->sha1)
+      if (reference->sha1 != content->sha1 && !(ignoreMask & IGNORE_CONTENT))
       {
         cout << "'" << iter->first << "' has different content.\n";
         rc|= RC_MODIFIED;
       }
-      if (reference->meta.st_size != content->meta.st_size)
+      if (reference->meta.st_size != content->meta.st_size && !(ignoreMask & IGNORE_SIZE))
       {
         cout << "'" << iter->first << "' has different size.\n";
         rc|= RC_MODIFIED;
       }
-      if (reference->meta.st_mtime != content->meta.st_mtime)
+      if (reference->meta.st_mtime != content->meta.st_mtime && !(ignoreMask & IGNORE_TIME))
       {
         cout << "'" << iter->first << "' has different modification time.\n";
         rc|= RC_MODIFIED;
       }
-      if (reference->meta.st_mode != content->meta.st_mode)
+      if (reference->meta.st_mode != content->meta.st_mode && !(ignoreMask & IGNORE_FLAGS))
       {
         cout << "'" << iter->first << "' has different file mode flags.\n";
         rc|= RC_MODIFIED;
@@ -83,7 +88,7 @@ int Alvara::validate()
 
       contentList.erase(iter->first);
     }
-    else
+    else if (!(ignoreMask & IGNORE_DELETION))
     {
       cout << "'" << iter->first << "' has been deleted.\n";
       rc|= RC_DELETED;
@@ -93,10 +98,13 @@ int Alvara::validate()
 
   // all remaining entries in the content list were not in the reference list
   // and therefore newly created/added.
-  for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++)
+  if (!(ignoreMask & IGNORE_ADDED))
   {
-    cout << "'" << iter->first << "' has been added.\n";
-    rc|= RC_ADDED;
+    for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++)
+    {
+      cout << "'" << iter->first << "' has been added.\n";
+      rc|= RC_ADDED;
+    }
   }
 
   return rc;
