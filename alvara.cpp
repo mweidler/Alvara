@@ -40,7 +40,7 @@ using namespace std;
 
 static int create_flag= 0;
 static int verify_flag= 0;
-static int verbose_flag= VERBOSITY_MESSAGE;
+static int verbose_flag= VERBOSITY_INFO;
 static int help_flag= 0;
 
 static struct option long_options[] =
@@ -48,14 +48,14 @@ static struct option long_options[] =
   // These options set a flag.
   { "create",  no_argument,       &create_flag,  1 },
   { "verify",  no_argument,       &verify_flag,  1 },
-  { "quiet",   no_argument,       &verbose_flag, VERBOSITY_QUIET },
-  { "verbose", no_argument,       &verbose_flag, VERBOSITY_VERBOSE },
+  { "quiet",   no_argument,       &verbose_flag, VERBOSITY_QUIET    },
+  { "progress",no_argument,       &verbose_flag, VERBOSITY_PROGRESS },
   { "help",    no_argument,       &help_flag,    1 },
   { "usage",   no_argument,       &help_flag,    1 },
         
   // These options don't set a flag, we distinguish them by their indices.
   { "file",    required_argument, 0, 'f' },
-  { "exclude", required_argument, 0, 'x' },
+  { "exclude", required_argument, 0, 'e' },
   { "ignore",  required_argument, 0, 'i' },
   { 0, 0, 0, 0 }
 };
@@ -69,15 +69,15 @@ void usage(const char *prgname)
   cout << prgname << " " << ALVARA_VERSION << " - file integrity verification.\n";
   cout << "Usage: " << prgname << " <options> <file-or-path> [<file-or-path>] ...\n";
   cout << "where <options> start at least with one '-' and can be:\n";
-  cout << "   --create, -c or c: Create a new reference file with reference information.\n";
-  cout << "   --verify, -v or v: Verify the given directories or files against previously created reference information.\n";
-  cout << "   --file,   -f or f: Read or write reference information from this file.\n";
-  cout << "   --exclude -x or x: Exclude path/file from verification.\n";
-  cout << "   --ignore, -i or i: Ignore differences of (c)ontent, (s)ize, (m)odification, (f)lags, (d)eletion, (a)dded.\n";
-  cout << "   --quiet,  -q or q: Be quiet. Do not print information or progress.\n";
-  cout << "   --verbose        : Print as many information as possible.\n";
-  cout << "   --help,   -h or h: Print this command usage.\n";
-  cout << "   --usage,  -u or u: Print this command usage.\n";
+  cout << "   --create,   -c or c: Create a new reference file with reference information.\n";
+  cout << "   --verify,   -v or v: Verify the given directories or files against previously created reference information.\n";
+  cout << "   --file,     -f or f: Read or write reference information from this file.\n";
+  cout << "   --exclude,  -e or e: Exclude path/file from verification.\n";
+  cout << "   --ignore,   -i or i: Ignore differences of (c)ontent, (s)ize, (m)odification, (f)lags, (d)eletion, (a)dded.\n";
+  cout << "   --quiet,    -q or q: Be quiet. Print only detected differences.\n";
+  cout << "   --progress, -p or p: Show progress and print as many information as possible.\n";
+  cout << "   --help,     -h or h: Print this command usage.\n";
+  cout << "   --usage,    -u or u: Print this command usage.\n";
   cout << "<file-or-path> filename or a directory name to investitage.\n";
   cout << "\n";
   cout << "Examples:\n";
@@ -131,7 +131,7 @@ int main (int argc, char *argv[])
     /* getopt_long stores the option index here. */
     int option_index = 0;
      
-    optcode = getopt_long_only(argc, argv, "cvqhuf:x:i:", long_options, &option_index);
+    optcode = getopt_long_only(argc, argv, "cvqphuf:x:i:", long_options, &option_index);
      
     /* Detect the end of the options. */
     if (optcode == -1)
@@ -152,6 +152,10 @@ int main (int argc, char *argv[])
      
       case 'q':
         verbose_flag= VERBOSITY_QUIET;
+        break;
+
+      case 'p':
+        verbose_flag= VERBOSITY_PROGRESS;
         break;
      
       case 'c':
@@ -204,6 +208,13 @@ int main (int argc, char *argv[])
   if (!reffilename)
   {
     cout << argv[0] << ": reference filename is mandatory\n";
+    cout << "Try " << argv[0] << " -h or --help for more information.\n";
+    return RC_ERROR;
+  }
+
+  if (optind == argc)
+  {
+    cout << argv[0] << ": please specify at least one file or directory target\n";
     cout << "Try " << argv[0] << " -h or --help for more information.\n";
     return RC_ERROR;
   }

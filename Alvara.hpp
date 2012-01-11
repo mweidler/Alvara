@@ -40,9 +40,9 @@ using namespace std;
 
 #define HASH_LENGTH 20
 
-#define VERBOSITY_QUIET   0
-#define VERBOSITY_MESSAGE 1
-#define VERBOSITY_VERBOSE 2
+#define VERBOSITY_QUIET    0
+#define VERBOSITY_INFO     1
+#define VERBOSITY_PROGRESS 2
 
 /*****************************************************************************
  * 

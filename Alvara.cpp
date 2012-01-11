@@ -37,8 +37,8 @@
 
 using namespace std;
 
-#define MESSAGE if (verbosity >= VERBOSITY_MESSAGE)
-#define VERBOSE if (verbosity >= VERBOSITY_VERBOSE)
+#define INFO     if (verbosity >= VERBOSITY_INFO)
+#define PROGRESS if (verbosity >= VERBOSITY_PROGRESS)
 
 
 void Alvara::SetVerbosity(int newverbosity)
@@ -118,7 +118,7 @@ int Alvara::computeHashes()
     ContentEntry *entry= iter->second;
     entry->sha1.clear();
     
-    VERBOSE cout << "\rGenerating hashes... (" << n << "/" << contentList.size() << ")   " << flush;
+    PROGRESS cout << "\rGenerating hashes... (" << n << "/" << contentList.size() << ")   " << flush;
 	
     if (S_ISREG(entry->meta.st_mode))
     {
@@ -149,7 +149,7 @@ int Alvara::computeHashes()
   
   if (contentList.size() > 0)
   {
-    VERBOSE cout << "\n";
+    PROGRESS cout << "\n";
   }
 
   return rc;
@@ -167,9 +167,9 @@ int Alvara::writeReference(const char *filename)
   outputfile.open(filename, ios::out);
   if (outputfile.is_open())
   {
-    VERBOSE cout << "Writing reference file '" << filename << "'..." << flush;
+    PROGRESS cout << "Writing reference file '" << filename << "'..." << flush;
     StreamPersistence::Save(contentList, outputfile);
-    VERBOSE cout << " done.\n";
+    PROGRESS cout << " done.\n";
   }
   else
   {
@@ -192,15 +192,15 @@ int Alvara::validateContent(const char *filename)
   inputfile.open(filename, ios::in);
   if (inputfile.is_open())
   {
-    VERBOSE cout << "Reading reference file '" << filename << "'..." << flush;
+    PROGRESS cout << "Reading reference file '" << filename << "'..." << flush;
     StreamPersistence::Load(referenceList, inputfile);
-    VERBOSE cout << " done.\n";
+    PROGRESS cout << " done.\n";
 
-    VERBOSE cout << "Validating content...\n";
+    PROGRESS cout << "Validating content...\n";
     rc|= validate();
     if (rc == 0)
     {
-       MESSAGE cout << "No modifications detected.\n";
+       INFO cout << "No differences detected.\n";
     }
   }
   else
@@ -250,7 +250,7 @@ void Alvara::ReadDirectory(string &dirname)
       }
     }
 
-    VERBOSE cout << "\rScanning...  (" << contentList.size() << ")       " << flush;
+    PROGRESS cout << "\rScanning...  (" << contentList.size() << ")       " << flush;
     closedir(pDirectory);
   }
   else
@@ -289,6 +289,6 @@ void Alvara::Create(string &basedir)
     delete entry;
   }
 
-  VERBOSE cout << "\rScanning '" << basedir << "'...  (" << contentList.size() << ")" << " done.\n";
+  PROGRESS cout << "\rScanning '" << basedir << "'...  (" << contentList.size() << ")" << " done.\n";
 }
 
