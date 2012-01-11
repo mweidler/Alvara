@@ -1,7 +1,7 @@
 //
 // Alvara.cpp
 //
-// COPYRIGHT (C) 2011 AND ALL RIGHTS RESERVED BY
+// COPYRIGHT (C) 2012 AND ALL RIGHTS RESERVED BY
 // MARC WEIDLER, ULRICHSTR. 12/1, 71672 MARBACH, GERMANY (MARC.WEIDLER@WEB.DE).
 //
 // ALL RIGHTS RESERVED. THIS SOFTWARE AND RELATED DOCUMENTATION ARE PROTECTED BY
@@ -29,8 +29,7 @@
 #define HEADER_ALVARA_INC
 
 #include "ContentList.hpp"
-
-using namespace std;
+#include <list>
 
 #define RC_OK       0
 #define RC_MODIFIED 1
@@ -51,32 +50,36 @@ using namespace std;
 #define IGNORE_DELETION   16
 #define IGNORE_ADDED      32
 
+using namespace std;
+
 
 /*****************************************************************************
- * 
+ * Class definition for Alvara
  *****************************************************************************/
 class Alvara {
 
 public:
-  int validate();
-  int computeHashes();
+  void Scan(string &basedir);
+  int  ComputeHashes();
+  int  WriteReference(const char *filename);
+  int  VerifyContent(const char *filename);
 
-  int writeReference(const char *filename);
-  int validateContent(const char *filename);
-
-  void ReadDirectory(string &dirname);
-  void Create(string &basedir);
   void SetVerbosity(int verbosity);
-  void SetIgnorance(int ignoremask);
-
+  void SetIgnorance(int ignorance);
+  void AddExclude(const char *exclude);
+  
 protected:
+  bool isExcluded(const char *filename);
+  void ReadDirectory(string &dirname);
+  int  Validate();
+    
+private:
   ContentList referenceList;
   ContentList contentList;
 
-private:
   int verbosity;
-  int ignoreMask;
+  int ignorance;
+  list<string> excludesList;
 };
 
 #endif // ! HEADER_ALVARA_INC
-

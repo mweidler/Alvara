@@ -1,7 +1,7 @@
 //
 // alvara.cpp
 //
-// COPYRIGHT (C) 2011 AND ALL RIGHTS RESERVED BY
+// COPYRIGHT (C) 2012 AND ALL RIGHTS RESERVED BY
 // MARC WEIDLER, ULRICHSTR. 12/1, 71672 MARBACH, GERMANY (MARC.WEIDLER@WEB.DE).
 //
 // ALL RIGHTS RESERVED. THIS SOFTWARE AND RELATED DOCUMENTATION ARE PROTECTED BY
@@ -37,22 +37,27 @@ using namespace std;
   #define ALVARA_VERSION ""
 #endif
 
+#define COMMAND_NONE   0
+#define COMMAND_CREATE 1
+#define COMMAND_VERIFY 2
+#define COMMAND_BOTH   (COMMAND_CREATE|COMMAND_VERIFY)
 
-static int create_flag= 0;
-static int verify_flag= 0;
-static int verbose_flag= VERBOSITY_INFO;
-static int help_flag= 0;
-static int ignore_flag= 0;
+static int command=  COMMAND_NONE;
+static int command2= COMMAND_NONE;
+static int verbosity= VERBOSITY_INFO;
+static int showhelp= 0;
+static int ignorance= 0;
 
-static struct option long_options[] =
+/* options map for getopt() */
+static struct option long_options[]=
 {
   // These options set a flag.
-  { "create",  no_argument,       &create_flag,  1 },
-  { "verify",  no_argument,       &verify_flag,  1 },
-  { "quiet",   no_argument,       &verbose_flag, VERBOSITY_QUIET    },
-  { "progress",no_argument,       &verbose_flag, VERBOSITY_PROGRESS },
-  { "help",    no_argument,       &help_flag,    1 },
-  { "usage",   no_argument,       &help_flag,    1 },
+  { "create",  no_argument, &command,   COMMAND_CREATE     },
+  { "verify",  no_argument, &command2,  COMMAND_VERIFY     },
+  { "quiet",   no_argument, &verbosity, VERBOSITY_QUIET    },
+  { "progress",no_argument, &verbosity, VERBOSITY_PROGRESS },
+  { "help",    no_argument, &showhelp,  1                  },
+  { "usage",   no_argument, &showhelp,  1                  },
         
   // These options don't set a flag, we distinguish them by their indices.
   { "file",    required_argument, 0, 'f' },
@@ -62,48 +67,74 @@ static struct option long_options[] =
 };
 
 
-/*****************************************************************************
+/********************************************************************************************
  * Print usage information to the console.
- *****************************************************************************/
-void usage(const char *prgname)
+ *******************************************************************************************/ 
+static void usage(const char *prgname)
 {
-  cout << prgname << " " << ALVARA_VERSION << " - file integrity verification.\n";
-  cout << "Usage: " << prgname << " <options> <file-or-path> [<file-or-path>] ...\n";
-  cout << "where <options> start at least with one '-' and can be:\n";
-  cout << "   --create,   -c or c: Create a new reference file with reference information.\n";
-  cout << "   --verify,   -v or v: Verify the given directories or files against previously created reference information.\n";
-  cout << "   --file,     -f or f: Read or write reference information from this file.\n";
-  cout << "   --exclude,  -e or e: Exclude path/file from verification.\n";
-  cout << "   --ignore,   -i or i: Ignore differences of (c)ontent, (s)ize, (t)ime, (f)lags, (d)eletion, (a)dded.\n";
-  cout << "   --quiet,    -q or q: Be quiet. Print only detected differences.\n";
-  cout << "   --progress, -p or p: Show progress and print as many information as possible.\n";
-  cout << "   --help,     -h or h: Print this command usage.\n";
-  cout << "   --usage,    -u or u: Print this command usage.\n";
-  cout << "<file-or-path> filename or a directory name to investitage.\n";
-  cout << "\n";
-  cout << "Examples:\n";
-  cout << "1. Create reference file 'reference' with contents of directory '/media/data' and '/media/music':\n";
-  cout << "     " << prgname << " -cf ~/reference /media/data /media/music\n";
-  cout << "2. Verify the obove created reference to the current content:\n";
-  cout << "     " << prgname << " --verify --file=~/reference /media/data /media/music\n";
-  cout << "3. Create reference of home directory, but ignore '.ssh' and '.dbus' directories:\n";
-  cout << "     " << prgname << " --create --file=/data/ref --exclude='.ssh' --exclude='.dbus' ~\n";
+  cout << prgname << " " << ALVARA_VERSION << " - file integrity verification.\n"
 
+  "Usage: " << prgname << " <options> <file-or-path> [<file-or-path>] ...\n"
+  "where <options> start at least with one '-' and can be\n"
+  "   --create, -c or c          Create a new reference file with reference information.\n"
+  "   --verify, -v or v          Verify the given files or directories against previously created reference information.\n"
+  "   --file=REFERENCE, -f or f  Read or write reference information using file REFERENCE.\n"
+  "   --exclude=PATTERN, -e or e Exclude files based upon PATTERN from verification.\n"
+  "   --ignore=IGNORE, -i or i   Ignore differences of content.\n"
+  "                              You can IGNORE one or multiple of: (c)ontent,(s)ize,(t)ime,(f)lags,(d)eletion,(a)dded.\n"
+  "                              Use long (e.g. 'content') or short form (e.g. 'c'), separated with or without comma.\n"
+  "   --quiet, -q or q           Be quiet. Print only detected differences.\n"
+  "   --progress, -p or p        Show progress and print as many information as possible.\n"
+  "   --help, -h or h            Print this command usage.\n"
+  "   --usage, -u or u           Same as '--help'.\n"
+  "and <file-or-path> specifies filename or a directory name to investitage.\n"
+  "\n"
+  "Return codes are\n"
+  "   0  no differences were detected\n"
+  "   1  content, size, time or flags have been changed\n"
+  "   2  files were deleted\n"
+  "   4  files were added\n"
+  "  16  error occured\n"
+  "\n"
+  "Examples:\n"
+  "   Create reference file 'reference' with contents of directory '/media/data' and '/media/music':\n"
+  "     " << prgname << " -cf ~/reference /media/data /media/music\n\n"
+  "   Verify the above created reference against the current content, but ignore file's timestamp:\n"
+  "     " << prgname << " --verify --file=~/reference --ignore=time /media/data /media/music\n\n"
+  "   Create reference of home directory, but exclude '.ssh' and '.dbus' directories:\n"
+  "     " << prgname << " --create --file=/data/ref --exclude='.ssh' --exclude=.dbus ~\n";
 }
 
 
 /********************************************************************************************
- * Main function:
+ * Finds the needle in haystack and removes all occurencies.
+ * Return: 1 if needle found, otherwise 0
+ *******************************************************************************************/ 
+static int findAndWipe(const char *haystack, const char *needle)
+{
+  int found= 0;
+  char *p;
+
+  while ((p=(char *)strstr(haystack, needle)) != NULL)
+  {
+     strncpy(p, p+strlen(needle), strlen(p));
+     found= 1;
+  }
+
+  return found;
+}
+
+
+/********************************************************************************************
  *
- * TODO
+ * Main function
  *
  *******************************************************************************************/ 
 int main (int argc, char *argv[])
 {
   int rc= RC_OK;
-  int optcode= 0;
   Alvara alvara;
-  const char *reffilename= NULL;
+  const char *ref_filename= NULL;
   
   // ensure large file support
   struct stat meta;
@@ -114,6 +145,8 @@ int main (int argc, char *argv[])
     return RC_ERROR;
   }
 
+
+  // Now check and parse parameters...
   if (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0))
   {
     usage(argv[0]);
@@ -130,9 +163,8 @@ int main (int argc, char *argv[])
   while (1)
   {
     /* getopt_long stores the option index here. */
-    int option_index = 0;
-     
-    optcode = getopt_long_only(argc, argv, "cvqphuf:x:i:", long_options, &option_index);
+    int option_index= 0;
+    int optcode= getopt_long_only(argc, argv, "cvqphuf:x:i:", long_options, &option_index);
      
     /* Detect the end of the options. */
     if (optcode == -1)
@@ -144,49 +176,66 @@ int main (int argc, char *argv[])
         /* If this option set a flag, do nothing else now. */
         if (long_options[option_index].flag != 0)
           break;
-	   
-        cout << "option " << long_options[option_index].name;
-        if (optarg)
-             cout << " with arg " << optarg;
-        cout << "\n";
+
+        cout << argv[0] << ": program bug " << optcode << "\n";
+        return RC_ERROR;       
         break;
-     
+	       
       case 'q':
-        verbose_flag= VERBOSITY_QUIET;
+        verbosity= VERBOSITY_QUIET;
         break;
 
       case 'p':
-        verbose_flag= VERBOSITY_PROGRESS;
+        verbosity= VERBOSITY_PROGRESS;
         break;
      
       case 'c':
-        create_flag= 1;
+        command|= COMMAND_CREATE;
         break;
      
       case 'v':
-        verify_flag= 1;
+        command|= COMMAND_VERIFY;
         break;
      
       case 'f':
-        reffilename= optarg;
+        ref_filename= optarg;
+        break;
+
+      case 'e':
+        alvara.AddExclude(optarg);
         break;
 
       case 'i':
-        if (strchr(optarg, 'c')) ignore_flag |= IGNORE_CONTENT;
-        if (strchr(optarg, 's')) ignore_flag |= IGNORE_SIZE;
-        if (strchr(optarg, 't')) ignore_flag |= IGNORE_TIME;
-        if (strchr(optarg, 'f')) ignore_flag |= IGNORE_FLAGS;
-        if (strchr(optarg, 'd')) ignore_flag |= IGNORE_DELETION;
-        if (strchr(optarg, 'a')) ignore_flag |= IGNORE_ADDED;
+        if (findAndWipe(optarg, "content"))  ignorance |= IGNORE_CONTENT;
+        if (findAndWipe(optarg, "size"))     ignorance |= IGNORE_SIZE;
+        if (findAndWipe(optarg, "time"))     ignorance |= IGNORE_TIME;
+        if (findAndWipe(optarg, "flags"))    ignorance |= IGNORE_FLAGS;
+        if (findAndWipe(optarg, "deletion")) ignorance |= IGNORE_DELETION;
+        if (findAndWipe(optarg, "added"))    ignorance |= IGNORE_ADDED;
+        if (findAndWipe(optarg, "c"))        ignorance |= IGNORE_CONTENT;
+        if (findAndWipe(optarg, "s"))        ignorance |= IGNORE_SIZE;
+        if (findAndWipe(optarg, "t"))        ignorance |= IGNORE_TIME;
+        if (findAndWipe(optarg, "f"))        ignorance |= IGNORE_FLAGS;
+        if (findAndWipe(optarg, "d"))        ignorance |= IGNORE_DELETION;
+        if (findAndWipe(optarg, "a"))        ignorance |= IGNORE_ADDED;
+	findAndWipe(optarg, ","); // just delete all "," characters
+	if (strlen(optarg) > 0)
+	{
+          cout << argv[0] << ": unknown options for '--ignore': " << optarg << "\n";
+          cout << "Try " << argv[0] << " -h or --help for more information.\n";
+          return RC_ERROR;
+	}
         break;
 
       case 'u':
       case 'h':
-        help_flag=1;
+        showhelp= 1;
         break;
 
       case '?':
        /* getopt_long already printed an error message. */
+       cout << "Try " << argv[0] << " -h or --help for more information.\n";
+       return RC_ERROR;
        break;
      
       default:
@@ -195,27 +244,30 @@ int main (int argc, char *argv[])
     }
   }
 
-  if (help_flag)
+
+  // Now evaluate parameters... 
+  if (showhelp)
   {
     usage(argv[0]);
     return RC_OK;
   }
-     
-  if ((create_flag == 0) && (verify_flag == 0))
+
+  command|= command2;
+  if (command == COMMAND_NONE)
   {
     cout << argv[0] << ": command '--create' or '--verify' is mandatory\n";
     cout << "Try " << argv[0] << " -h or --help for more information.\n";
     return RC_ERROR;
   }
 
-  if (create_flag && verify_flag)
+  if (command == COMMAND_BOTH)
   {
     cout << argv[0] << ": choose either --create or --verify\n";
     cout << "Try " << argv[0] << " -h or --help for more information.\n";
     return RC_ERROR;
   }
 
-  if (!reffilename)
+  if (!ref_filename)
   {
     cout << argv[0] << ": reference filename is mandatory\n";
     cout << "Try " << argv[0] << " -h or --help for more information.\n";
@@ -229,28 +281,29 @@ int main (int argc, char *argv[])
     return RC_ERROR;
   }
 
-  alvara.SetVerbosity(verbose_flag);
-  alvara.SetIgnorance(ignore_flag);
+  alvara.SetVerbosity(verbosity);
+  alvara.SetIgnorance(ignorance);
+
 
   // Generate content list...
   while (optind < argc)
   {
     // do not resolve path names; relative paths must be possible!
     string basedir(argv[optind++]);
-    alvara.Create(basedir);
+    alvara.Scan(basedir);
   }
 
 
   // and hashes.
-  rc|= alvara.computeHashes();
+  rc|= alvara.ComputeHashes();
 
-  if (create_flag)
+  if (command == COMMAND_CREATE)
   {
-    rc|= alvara.writeReference(reffilename);
+    rc|= alvara.WriteReference(ref_filename);
   }
-  if (verify_flag)
+  if (command == COMMAND_VERIFY)
   {
-    rc|= alvara.validateContent(reffilename);
+    rc|= alvara.VerifyContent(ref_filename);
   }
 
   return rc;

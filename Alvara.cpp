@@ -1,7 +1,7 @@
 //
 // Alvara.cpp
 //
-// COPYRIGHT (C) 2011 AND ALL RIGHTS RESERVED BY
+// COPYRIGHT (C) 2012 AND ALL RIGHTS RESERVED BY
 // MARC WEIDLER, ULRICHSTR. 12/1, 71672 MARBACH, GERMANY (MARC.WEIDLER@WEB.DE).
 //
 // ALL RIGHTS RESERVED. THIS SOFTWARE AND RELATED DOCUMENTATION ARE PROTECTED BY
@@ -34,27 +34,48 @@
 #include <errno.h>
 #include <dirent.h>
 #include <sys/stat.h>
-
-using namespace std;
+#include <fnmatch.h>
 
 #define INFO     if (verbosity >= VERBOSITY_INFO)
 #define PROGRESS if (verbosity >= VERBOSITY_PROGRESS)
 
+using namespace std;
 
-void Alvara::SetVerbosity(int newverbosity)
+
+void Alvara::SetVerbosity(int verbosity)
 {
-   verbosity = newverbosity;
+  this->verbosity= verbosity;
 }
 
-void Alvara::SetIgnorance(int newignoremask)
+
+void Alvara::SetIgnorance(int ignorance)
 {
-   ignoreMask = newignoremask;
+  this->ignorance= ignorance;
 }
 
+
+void Alvara::AddExclude(const char *exclude)
+{
+  excludesList.push_back(exclude);
+}
+
+
+bool Alvara::isExcluded(const char *filename)
+{
+  for (list<string>::iterator iter=excludesList.begin(); iter != excludesList.end(); iter++)
+  {
+    if (fnmatch(iter->c_str(), filename, FNM_FILE_NAME) == 0)
+      return true;
+  }
+  
+  return false;
+}
+
+  
 /*****************************************************************************
  * Validate all entries in the reference list against the actual content list.
  *****************************************************************************/
-int Alvara::validate()
+int Alvara::Validate()
 {
   int rc= RC_OK;
 
@@ -65,22 +86,22 @@ int Alvara::validate()
 
     if (content)
     {
-      if (reference->sha1 != content->sha1 && !(ignoreMask & IGNORE_CONTENT))
+      if (reference->sha1 != content->sha1 && !(ignorance & IGNORE_CONTENT))
       {
         cout << "'" << iter->first << "' has different content.\n";
         rc|= RC_MODIFIED;
       }
-      if (reference->meta.st_size != content->meta.st_size && !(ignoreMask & IGNORE_SIZE))
+      if (reference->meta.st_size != content->meta.st_size && !(ignorance & IGNORE_SIZE))
       {
         cout << "'" << iter->first << "' has different size.\n";
         rc|= RC_MODIFIED;
       }
-      if (reference->meta.st_mtime != content->meta.st_mtime && !(ignoreMask & IGNORE_TIME))
+      if (reference->meta.st_mtime != content->meta.st_mtime && !(ignorance & IGNORE_TIME))
       {
         cout << "'" << iter->first << "' has different modification time.\n";
         rc|= RC_MODIFIED;
       }
-      if (reference->meta.st_mode != content->meta.st_mode && !(ignoreMask & IGNORE_FLAGS))
+      if (reference->meta.st_mode != content->meta.st_mode && !(ignorance & IGNORE_FLAGS))
       {
         cout << "'" << iter->first << "' has different file mode flags.\n";
         rc|= RC_MODIFIED;
@@ -88,7 +109,7 @@ int Alvara::validate()
 
       contentList.erase(iter->first);
     }
-    else if (!(ignoreMask & IGNORE_DELETION))
+    else if (!(ignorance & IGNORE_DELETION))
     {
       cout << "'" << iter->first << "' has been deleted.\n";
       rc|= RC_DELETED;
@@ -98,7 +119,7 @@ int Alvara::validate()
 
   // all remaining entries in the content list were not in the reference list
   // and therefore newly created/added.
-  if (!(ignoreMask & IGNORE_ADDED))
+  if (!(ignorance & IGNORE_ADDED))
   {
     for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++)
     {
@@ -114,12 +135,16 @@ int Alvara::validate()
 /*****************************************************************************
  * Compute all hashes for files in the list.
  *****************************************************************************/
-int Alvara::computeHashes()
+int Alvara::ComputeHashes()
 {
   unsigned char sha1_output[HASH_LENGTH];
   char bytehex[2+1];
   int  rc= RC_OK;
   int  n=1;
+
+  if (ignorance & IGNORE_CONTENT)
+    return RC_OK;
+
   
   for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++, n++)
   {
@@ -143,7 +168,7 @@ int Alvara::computeHashes()
         entry->sha1.append("no hash (");
         entry->sha1.append(strerror(errno));
         entry->sha1.append(")");
-        cerr << "Error on creating hash for '" << iter->first << "' (" << strerror(errno) << ").\n";
+        cerr << "\nError on creating hash for '" << iter->first << "' (" << strerror(errno) << ").\n" << flush;
         rc= RC_ERROR;
       }
     }
@@ -167,7 +192,7 @@ int Alvara::computeHashes()
 /*****************************************************************************
  * 
  *****************************************************************************/
-int Alvara::writeReference(const char *filename)
+int Alvara::WriteReference(const char *filename)
 {
   int rc= RC_OK;
   ofstream outputfile;
@@ -192,7 +217,7 @@ int Alvara::writeReference(const char *filename)
 /*****************************************************************************
  * 
  *****************************************************************************/
-int Alvara::validateContent(const char *filename)
+int Alvara::VerifyContent(const char *filename)
 {
   int rc= RC_OK;
   ifstream inputfile;
@@ -204,8 +229,8 @@ int Alvara::validateContent(const char *filename)
     StreamPersistence::Load(referenceList, inputfile);
     PROGRESS cout << " done.\n";
 
-    PROGRESS cout << "Validating content...\n";
-    rc|= validate();
+    PROGRESS cout << "Verifying content...\n";
+    rc|= Validate();
     if (rc == 0)
     {
        INFO cout << "No differences detected.\n";
@@ -235,6 +260,9 @@ void Alvara::ReadDirectory(string &dirname)
     while ((pDirEntry= readdir(pDirectory)))
     {
       if (strcmp(pDirEntry->d_name, "..") == 0 || strcmp(pDirEntry->d_name, ".") == 0)
+        continue;
+
+      if (isExcluded(pDirEntry->d_name))
         continue;
 
       ContentEntry *entry= new ContentEntry();
@@ -271,7 +299,7 @@ void Alvara::ReadDirectory(string &dirname)
 /*****************************************************************************
  * Read a single file or contents of a directory recursively.
  *****************************************************************************/
-void Alvara::Create(string &basedir)
+void Alvara::Scan(string &basedir)
 {
   ContentEntry *entry= new ContentEntry();
 
@@ -288,7 +316,7 @@ void Alvara::Create(string &basedir)
     ReadDirectory(basedir);
   }
   
-  if (basedir != ".." && basedir != ".")
+  if (basedir != ".." && basedir != "." && !isExcluded(basedir.c_str()))
   {
     contentList.insert(pair<string,ContentEntry *>(basedir,entry));
   }

@@ -19,7 +19,7 @@
 # http://people.redhat.com/berrange/notes/largefile.html
 
 COPT = -W -Wall -Werror -O2 $(shell getconf LFS_CFLAGS)
-LOPT = $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
+LOPT = -s $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
 TAGVERSION = $(shell git describe HEAD | sed 's/-/./;s/\([^-]*\).*/\1/')
 
 #getconf LFS_CFLAGS: RHEL 5.7 64Bit:      empty
