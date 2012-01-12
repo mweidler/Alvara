@@ -59,7 +59,7 @@ using namespace std;
 class Alvara {
 
 public:
-  void Scan(string &basedir);
+  void Scan(int prefix, string &basedir);
   int  ComputeHashes();
   int  VerifyContent();
 
@@ -72,7 +72,7 @@ public:
   
 protected:
   bool isExcluded(const char *filename);
-  void ReadDirectory(string &dirname);
+  void ReadDirectory(string &basedir, string &key);
 
     
 private:

@@ -42,6 +42,7 @@ typedef struct ContentEntry
 {
   struct stat meta;
   string      sha1;
+  string      origin;
 } ContentEntry;
 
 

@@ -60,11 +60,14 @@ void Alvara::AddExclude(const char *exclude)
 }
 
 
+/*****************************************************************************
+ * Returns true, if filename matches one of the exclude pattern(s).
+ *****************************************************************************/
 bool Alvara::isExcluded(const char *filename)
 {
   for (list<string>::iterator iter=excludesList.begin(); iter != excludesList.end(); iter++)
   {
-    if (fnmatch(iter->c_str(), filename, FNM_FILE_NAME) == 0)
+    if (fnmatch(iter->c_str(), filename, 0) == 0)
       return true;
   }
   
@@ -90,22 +93,22 @@ int Alvara::VerifyContent()
     {
       if (reference->sha1 != content->sha1 && !(ignorance & IGNORE_CONTENT))
       {
-        cout << "'" << iter->first << "' has different content.\n";
+        cout << "'" << content->origin << "' has different content.\n";
         rc|= RC_MODIFIED;
       }
       if (reference->meta.st_size != content->meta.st_size && !(ignorance & IGNORE_SIZE))
       {
-        cout << "'" << iter->first << "' has different size.\n";
+        cout << "'" << content->origin << "' has different size.\n";
         rc|= RC_MODIFIED;
       }
       if (reference->meta.st_mtime != content->meta.st_mtime && !(ignorance & IGNORE_TIME))
       {
-        cout << "'" << iter->first << "' has different modification time.\n";
+        cout << "'" << content->origin << "' has different modification time.\n";
         rc|= RC_MODIFIED;
       }
       if (reference->meta.st_mode != content->meta.st_mode && !(ignorance & IGNORE_FLAGS))
       {
-        cout << "'" << iter->first << "' has different file mode flags.\n";
+        cout << "'" << content->origin << "' has different file mode flags.\n";
         rc|= RC_MODIFIED;
       }
 
@@ -125,7 +128,7 @@ int Alvara::VerifyContent()
   {
     for (ContentListIterator iter= contentList.begin(); iter != contentList.end(); iter++)
     {
-      cout << "'" << iter->first << "' has been added.\n";
+      cout << "'" << iter->second->origin << "' has been added.\n";
       rc|= RC_ADDED;
     }
   }
@@ -162,7 +165,7 @@ int Alvara::ComputeHashes()
 	
     if (S_ISREG(entry->meta.st_mode))
     {
-      if (sha1_file( iter->first.c_str(), sha1_output) == 0)
+      if (sha1_file( entry->origin.c_str(), sha1_output) == 0)
       {
         for (int i = 0; i < HASH_LENGTH; i++)
         {
@@ -175,7 +178,7 @@ int Alvara::ComputeHashes()
         entry->sha1.append("no hash (");
         entry->sha1.append(strerror(errno));
         entry->sha1.append(")");
-        cerr << "\nError on creating hash for '" << iter->first << "' (" << strerror(errno) << ").\n" << flush;
+        cerr << "\nError on creating hash for '" << entry->origin << "' (" << strerror(errno) << ").\n" << flush;
         rc= RC_ERROR;
       }
     }
@@ -249,11 +252,12 @@ int Alvara::ReadReference(const char *filename)
 /*****************************************************************************
  * Read contents of a directory recursively.
  *****************************************************************************/
-void Alvara::ReadDirectory(string &dirname)
+void Alvara::ReadDirectory(string &dirname, string &key)
 {
   struct dirent *pDirEntry;
   string nextdirname;
-  
+  string nextkey;
+    
   DIR *pDirectory= opendir(dirname.c_str());
   if (pDirectory)
   {
@@ -262,31 +266,36 @@ void Alvara::ReadDirectory(string &dirname)
       if (strcmp(pDirEntry->d_name, "..") == 0 || strcmp(pDirEntry->d_name, ".") == 0)
         continue;
 
-      if (isExcluded(pDirEntry->d_name))
-        continue;
-
-      ContentEntry *entry= new ContentEntry();
-
       nextdirname= dirname;
       nextdirname.append("/");
       nextdirname.append(pDirEntry->d_name);
-      lstat(nextdirname.c_str(), &entry->meta);
-      
+
+      if (isExcluded(nextdirname.c_str()))
+        continue;
+
+      nextkey= key;
+      nextkey.append("/");
+      nextkey.append(pDirEntry->d_name);
+
+      ContentEntry *entry= new ContentEntry();
+      lstat(nextdirname.c_str(), &entry->meta);      
+      entry->origin = nextdirname;
+
       // directory size may not be compared, it's size depends on the relative path length.
       // Thus, only files get a valid/comparable size meta info.
       if (!S_ISREG(entry->meta.st_mode))
       {
         entry->meta.st_size= 0;
       }
-      contentList.insert(pair<string,ContentEntry *>(nextdirname,entry));
+      contentList.insert(pair<string,ContentEntry *>(nextkey,entry));
 
       if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
       {
-        ReadDirectory(nextdirname);
+        ReadDirectory(nextdirname, nextkey);
       }
     }
 
-    PROGRESS cout << "\rScanning...  (" << contentList.size() << ")       " << flush;
+    PROGRESS cout << "\rScanning...  (" << contentList.size() << ")  " << flush;
     closedir(pDirectory);
   }
   else
@@ -299,32 +308,43 @@ void Alvara::ReadDirectory(string &dirname)
 /*****************************************************************************
  * Read a single file or contents of a directory recursively.
  *****************************************************************************/
-void Alvara::Scan(string &basedir)
+void Alvara::Scan(int prefix, string &basedir)
 {
+  int entryused= 0;
   ContentEntry *entry= new ContentEntry();
-
-  lstat(basedir.c_str(), &entry->meta);
-
-  // directory size may not be compared, it's size depends on the relative path length.
-  // Thus, only files get a valid/comparable size meta info.
-  if (!S_ISREG(entry->meta.st_mode))
-  {
-    entry->meta.st_size= 0;
-  }
-  if (S_ISDIR(entry->meta.st_mode) && !S_ISLNK(entry->meta.st_mode))
-  {
-    ReadDirectory(basedir);
-  }
-  
-  if (basedir != ".." && basedir != "." && !isExcluded(basedir.c_str()))
-  {
-    contentList.insert(pair<string,ContentEntry *>(basedir,entry));
-  }
-  else
+  string key;
+  key.append(1, '1'+prefix);
+            
+  if (lstat(basedir.c_str(), &entry->meta) != 0)
   {
     delete entry;
+    cerr << "Could not open '" << basedir << "' (" << strerror(errno) << ").\n";
+    return;
   }
+
+  if (S_ISLNK(entry->meta.st_mode))
+  {
+    INFO cout << basedir << " is a symbolic link and will not be followed.\n";
+  }
+  else if (S_ISDIR(entry->meta.st_mode))
+  {
+    ReadDirectory(basedir, key);
+  }
+  else if (S_ISREG(entry->meta.st_mode))
+  {
+    if (!isExcluded(basedir.c_str()))
+    {
+      entry->origin= basedir;
+      key.append("/");
+      key.append(basedir.substr(basedir.rfind("/")+1));
+
+      contentList.insert(pair<string,ContentEntry *>(key,entry));
+      entryused= 1;
+    }
+  }
+
+  if (!entryused)
+    delete entry;
 
   PROGRESS cout << "\rScanning '" << basedir << "'...  (" << contentList.size() << ")" << " done.\n";
 }
-

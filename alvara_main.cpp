@@ -46,18 +46,20 @@ static int command=  COMMAND_NONE;
 static int command2= COMMAND_NONE;
 static int verbosity= VERBOSITY_INFO;
 static int showhelp= 0;
+static int showversion= 0;
 static int ignorance= 0;
 
 /* options map for getopt() */
 static struct option long_options[]=
 {
   // These options set a flag.
-  { "create",  no_argument, &command,   COMMAND_CREATE     },
-  { "verify",  no_argument, &command2,  COMMAND_VERIFY     },
-  { "quiet",   no_argument, &verbosity, VERBOSITY_QUIET    },
-  { "progress",no_argument, &verbosity, VERBOSITY_PROGRESS },
-  { "help",    no_argument, &showhelp,  1                  },
-  { "usage",   no_argument, &showhelp,  1                  },
+  { "create",  no_argument, &command,      COMMAND_CREATE     },
+  { "verify",  no_argument, &command2,     COMMAND_VERIFY     },
+  { "quiet",   no_argument, &verbosity,    VERBOSITY_QUIET    },
+  { "progress",no_argument, &verbosity,    VERBOSITY_PROGRESS },
+  { "version", no_argument, &showversion,  1                  },
+  { "help",    no_argument, &showhelp,     1                  },
+  { "usage",   no_argument, &showhelp,     1                  },
         
   // These options don't set a flag, we distinguish them by their indices.
   { "file",    required_argument, 0, 'f' },
@@ -80,12 +82,14 @@ static void usage(const char *prgname)
   "   --verify, -v or v          Verify the given files or directories against previously created reference information.\n"
   "   --file=REFERENCE, -f or f  Read or write reference information using file REFERENCE.\n"
   "   --exclude=PATTERN, -e or e Exclude files based upon PATTERN from verification.\n"
+  "                              The whole relative file path is compared against PATTERN.\n"
   "   --ignore=IGNORE, -i or i   Ignore differences of content.\n"
   "                              You can IGNORE one or multiple of: (c)ontent,(s)ize,(t)ime,(f)lags,(d)eletion,(a)dded.\n"
   "                              Use long (e.g. 'content') or short form (e.g. 'c'), separated with or without comma.\n"
   "   --quiet, -q or q           Be quiet. Print only detected differences.\n"
   "   --progress, -p or p        Show progress and print as many information as possible.\n"
-  "   --help, -h or h            Print this command usage.\n"
+  "   --version                  Output version info and exit..\n"
+  "   --help, -h or h            Output this command usage.\n"
   "   --usage, -u or u           Same as '--help'.\n"
   "and <file-or-path> specifies filename or a directory name to investitage.\n"
   "\n"
@@ -145,6 +149,12 @@ int main (int argc, char *argv[])
     return RC_ERROR;
   }
 
+  // Now check and parse parameters...
+  if (argc == 2 && (strcmp(argv[1], "--version") == 0))
+  {
+    cout << argv[0] << " version " << ALVARA_VERSION << "\n";
+    return RC_OK;
+  }
 
   // Now check and parse parameters...
   if (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0))
@@ -252,6 +262,12 @@ int main (int argc, char *argv[])
     return RC_OK;
   }
 
+  if (showversion)
+  {
+    cout << argv[0] << " version " << ALVARA_VERSION << "\n";
+    return RC_OK;
+  }
+
   command|= command2;
   if (command == COMMAND_NONE)
   {
@@ -291,12 +307,14 @@ int main (int argc, char *argv[])
       return rc;
   }
 
+  int prefix= 0;
   // Generate content list...
   while (optind < argc)
   {
     // do not resolve path names; relative paths must be possible!
     string basedir(argv[optind++]);
-    alvara.Scan(basedir);
+    alvara.Scan(prefix, basedir);
+    prefix++;
   }
 
   // and hashes.
