@@ -1,70 +1,90 @@
 .\" Manpage for alvara.
 .\" Contact marc.weidler@web.de to correct errors or typos.
-.TH alvara 1 "30 Dec 2011" "0.1" "alvara man page"
+.TH alvara 1 "13 Jan 2012" "1.0" "alvara man page"
 .SH NAME
 alvara \- file integrity verification
 .SH SYNOPSIS
-.B alvara [command]
-.I reference-file
+.B alvara [options]
 .I file-or-path
+.I [file-or-path]
 .B ...
 .SH DESCRIPTION
 alvara is a command-line based file integrity verification tool.
-It computes the SHA1 message digest from a file's contents and stores
-it with other file meta information in a reference file for later comparison.
+It collects meta-information of files and directories and stores them
+in a reference file for later comparison.
 
-The following information of each file are stored:
- \- SHA1 message digest
- \- access flags
+The following information are stored:
+ \- file content checksum (SHA1 message digest)
+ \- file access flags
  \- modification time
- \- size
+ \- file size
 
 With these information, the tool is able to verify, if a previous
 investigated file or directory has been modified or altered.
 
 .SH USE CASES
 .TP
-a. Backup verification
-   You can use this....
+a) Backup verification
+   The main purpose of alvara is to verify a successful copy or backup
+   of data and ensure, that they are still valid and fully readable.
 
 .TP
-b. Detect system modification
-   You can use this....
+b) Detect system modification
+   It is also possible to detect system file modifications.
+   But maybe there are better and specialized tools like
+   tripwire and integrit.
+
 
 .SH OPTIONS
+options start at least with one '-' and can be
 .TP
-.B command
-can be either
-.I create
-or
-.I validate
-dependend on you want to
-.I create
-a new reference file with the actual file system contents, or
-.I validate
-the file system contents against a previous generated referece file.
-.I create
-and
-.I validate
-can be abbreviated with
-.I c
-and
-.I v
+.B --create, c or c
+ Create a new reference file with reference information.
 .TP
-.BI reference-file
-is the file where to write file information to or read from for later validation.
+.B --verify, -v or v
+ Verify the given files or directories against previously created reference information.
+.TP
+.B --file=REFERENCE, -f or f
+ Read or write reference information using file REFERENCE.
+.TP
+.B --exclude=PATTERN, -e or e
+ Exclude files based upon PATTERN from verification.
+ The whole relative file path is compared against PATTERN.
+.TP
+.B --ignore=IGNORE, -i or i
+ Ignore differences of content.
+ You can IGNORE one or multiple of: (c)ontent,(s)ize,(t)ime,(f)lags,(d)eletion,(a)dded.
+ Use long (e.g. 'content') or short form (e.g. 'c'), separated with or without comma.
+.TP
+.B --quiet, -q or q
+ Be quiet. Print only detected differences.
+.TP
+.B --progress, -p or p
+ Show progress and print as many information as possible.
+.TP
+.B --version
+ Output version info and exit.
+.TP
+.B --help, -h or h
+ Output this command usage.
+.TP
+.B --usage, -u or u
+ Same as '--help'.
 .TP
 .BI file-or-path
-a single file or directory to be examined. You can give multiple files or directories to be examined.
+a single file or directory to be investigated.
 .SH EXAMPLES
 .TP
-a) Create reference of home directory:
- $ alvara create   /tmp/reference.alv ~               
+a) Create reference file 'reference' with contents of directory '/media/data' and '/media/music':
+ $ alvara -cf ~/reference /media/data /media/music
 .TP
-b) Check for modifications
- $ alvara validate /tmp/reference.alv ~
+b) Verify the above created reference against the current content, but ignore file's timestamp:
+ $ alvara --verify --file=~/reference --ignore=time /media/data /media/music
 .TP
-c) Verify backup
+c) Create reference of home directory, but exclude '.ssh' and '.dbus' directories:
+ $ alvara --create --file=/data/ref --exclude='.ssh' --exclude=.dbus ~
+.TP
+d) Verify backup
  $ alvara create ~/reference.alv .
  $ cp -ra . /media/mybackup
  $ alvara validate ~/reference.alv /media/mybackup

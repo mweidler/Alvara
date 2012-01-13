@@ -2,25 +2,29 @@ ALVARA - file integrity verification
 ------------------------------------
 
 alvara is a command-line based file integrity verification tool.
-It computes the SHA1 message digest from a file and stores it
-it with other file information in a seperate file for later comparison.
+It collects meta-information of files and directories and stores them
+in a reference file for later comparison.
 
 The following information are stored:
-- SHA1 message digest
+- file content checksum (SHA1 message digest)
 - file access flags
 - modification time
 - file size
 
-With these information, it it possible to validate, if a previous
-investigated directory (or file) has been modified or altered.
+With these information, the tool is able to verify, if a previous
+investigated file or directory has been modified or altered.
 
 
 Use cases:
 a) Backup verification
-   ....
+   The main purpose of alvara is to verify a successful copy or backup
+   of data and ensure, that they are still valid and fully readable.
 
 b) Detect system modification
-   ....
+   It is also possible to detect system file modifications.
+   But maybe there are better and specialized tools like
+   tripwire and integrit.
+
 
 Features:
     - SHA1 message digest (160-bit)
@@ -28,10 +32,12 @@ Features:
     - Create reference and validate integrity
     - Works on single file and/or recursively entire directories
     - Detects file modifications, deleting and adding of files
+
     
 Environment:
     alvara is written in c/c++ and is optimized for Linux-based environments.
     But it should be compileable and usable on all other Unix-like environments.
+
     
 Usage example:
     Create reference file 'reference' with contents of directory '/media/data' and '/media/music':
