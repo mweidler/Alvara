@@ -1,1 +1,1 @@
-#define ALVARA_VERSION "0.8.4"
+#define ALVARA_VERSION "0.8.5"
