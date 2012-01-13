@@ -213,6 +213,7 @@ int Alvara::WriteReference(const char *filename)
     PROGRESS cout << "Writing reference file '" << filename << "'..." << flush;
     StreamPersistence::Save(contentList, outputfile);
     PROGRESS cout << " done.\n";
+    outputfile.close();
   }
   else
   {
