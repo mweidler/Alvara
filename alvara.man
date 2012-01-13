@@ -1,23 +1,28 @@
 .\" Manpage for alvara.
 .\" Contact marc.weidler@web.de to correct errors or typos.
 .TH alvara 1 "13 Jan 2012" "1.0" "alvara man page"
+
 .SH NAME
 alvara \- file integrity verification
 .SH SYNOPSIS
-.B alvara [options]
+.B alvara
+.I options
 .I file-or-path
 .I [file-or-path]
 .B ...
+
 .SH DESCRIPTION
 alvara is a command-line based file integrity verification tool.
-It collects meta-information of files and directories and stores them
-in a reference file for later comparison.
+It collects meta-information of files and directories and stores
+them in a reference file for later comparison.
 
 The following information are stored:
- \- file content checksum (SHA1 message digest)
- \- file access flags
- \- modification time
+ \- existence
+ \- file content checksum (SHA1 message digest, 160-bit/FIPS-180-1 compliant)
  \- file size
+ \- access flags
+ \- modification time
+
 
 With these information, the tool is able to verify, if a previous
 investigated file or directory has been modified or altered.
@@ -34,12 +39,11 @@ b) Detect system modification
    But maybe there are better and specialized tools like
    tripwire and integrit.
 
-
 .SH OPTIONS
 options start at least with one '-' and can be
 .TP
 .B --create, c or c
- Create a new reference file with reference information.
+ Create a new reference file with reference information of the given files or directories.
 .TP
 .B --verify, -v or v
  Verify the given files or directories against previously created reference information.
@@ -48,7 +52,7 @@ options start at least with one '-' and can be
  Read or write reference information using file REFERENCE.
 .TP
 .B --exclude=PATTERN, -e or e
- Exclude files based upon PATTERN from verification.
+ Gives you a way to avoid processing files/directories, if they match the PATTERN.
  The whole relative file path is compared against PATTERN.
 .TP
 .B --ignore=IGNORE, -i or i
@@ -63,16 +67,25 @@ options start at least with one '-' and can be
  Show progress and print as many information as possible.
 .TP
 .B --version
- Output version info and exit.
+ Print version info and exit.
 .TP
 .B --help, -h or h
- Output this command usage.
+ Prints the synopsis and a list of options and exists.
 .TP
 .B --usage, -u or u
  Same as '--help'.
 .TP
 .BI file-or-path
-a single file or directory to be investigated.
+a file or directory to be investigated.
+
+.SH RETURN VALUES
+Return values are
+  0  no differences were detected
+  1  content, size, time or flags have been changed
+  2  files were deleted
+  4  files were added
+ 16  error occured
+  
 .SH EXAMPLES
 .TP
 a) Create reference file 'reference' with contents of directory '/media/data' and '/media/music':
@@ -91,8 +104,9 @@ d) Verify backup
 
 .SH SEE ALSO
 .BR sha1sum(1)
+
 .SH BUGS
 No known bugs.
-.SH AUTHOR
-Marc Weidler (marc.weidler@web.de)
 
+.SH AUTHOR
+Written by Marc Weidler (marc.weidler@web.de)

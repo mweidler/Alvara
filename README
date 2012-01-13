@@ -6,10 +6,12 @@ It collects meta-information of files and directories and stores them
 in a reference file for later comparison.
 
 The following information are stored:
-- file content checksum (SHA1 message digest)
-- file access flags
-- modification time
+- existence
+- file content checksum (SHA1 message digest, 160-bit/FIPS-180-1 compliant)
 - file size
+- access flags
+- modification time
+
 
 With these information, the tool is able to verify, if a previous
 investigated file or directory has been modified or altered.

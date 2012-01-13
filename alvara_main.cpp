@@ -33,11 +33,6 @@
 
 using namespace std;
 
-// Change this version id, if a new tag is set.
-// This is used, if no version control is available.
-#ifndef ALVARA_VERSION
-  #define ALVARA_VERSION "0.8"
-#endif
 
 #define COMMAND_NONE   0
 #define COMMAND_CREATE 1
@@ -80,22 +75,22 @@ static void usage(const char *prgname)
 
   "Usage: " << prgname << " <options> <file-or-path> [<file-or-path>] ...\n"
   "where <options> start at least with one '-' and can be\n"
-  "   --create, -c or c          Create a new reference file with reference information.\n"
+  "   --create, -c or c          Create a new reference file with reference information of the given files or directories.\n"
   "   --verify, -v or v          Verify the given files or directories against previously created reference information.\n"
   "   --file=REFERENCE, -f or f  Read or write reference information using file REFERENCE.\n"
-  "   --exclude=PATTERN, -e or e Exclude files based upon PATTERN from verification.\n"
-  "                              The whole relative file path is compared against PATTERN.\n"
+  "   --exclude=PATTERN, -e or e Gives you a way to avoid processing files/directories, if they match the PATTERN.\n"
+  "                              The whole relative file path is compared against the PATTERN.\n"
   "   --ignore=IGNORE, -i or i   Ignore differences of content.\n"
   "                              You can IGNORE one or multiple of: (c)ontent,(s)ize,(t)ime,(f)lags,(d)eletion,(a)dded.\n"
   "                              Use long (e.g. 'content') or short form (e.g. 'c'), separated with or without comma.\n"
   "   --quiet, -q or q           Be quiet. Print only detected differences.\n"
   "   --progress, -p or p        Show progress and print as many information as possible.\n"
-  "   --version                  Output version info and exit..\n"
-  "   --help, -h or h            Output this command usage.\n"
+  "   --version                  Print version info and exit.\n"
+  "   --help, -h or h            Prints the synopsis and a list of options and exists.\n"
   "   --usage, -u or u           Same as '--help'.\n"
   "and <file-or-path> specifies filename or a directory name to investitage.\n"
   "\n"
-  "Return codes are\n"
+  "Return values are\n"
   "   0  no differences were detected\n"
   "   1  content, size, time or flags have been changed\n"
   "   2  files were deleted\n"

@@ -20,15 +20,14 @@
 
 COPT = -W -Wall -Werror -O2 $(shell getconf LFS_CFLAGS)
 LOPT = -s $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
-TAGVERSION = $(shell git describe HEAD | sed 's/-/./;s/\([^-]*\).*/\1/')
+TAG_VERSION = $(shell git describe HEAD 2>/dev/null | sed 's/-/./;s/\([^-]*\).*/\1/')
 
 #getconf LFS_CFLAGS: RHEL 5.7 64Bit:      empty
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #                    Linux Mint 12 64Bit: empty
 
-alvara: alvara_main.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o
-	@touch version.h
-	@if [ "$(TAGVERSION)" != "" ]; then echo "#define ALVARA_VERSION \"$(TAGVERSION)\"" >version.h; fi
+alvara: alvara_main.cpp version.h sha1.o ContentList.o StreamPersistence.o Alvara.o
+	@if [[ "$(TAG_VERSION)" != "" ]]; then echo "#define ALVARA_VERSION \"$(TAG_VERSION)\"" >version.h; fi
 	g++ $(COPT) $(LOPT) alvara_main.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o -o alvara 
 
 sha1.o: sha1.c sha1.h
@@ -46,7 +45,7 @@ StreamPersistence.o: StreamPersistence.cpp StreamPersistence.hpp
 clobber: clean
 
 clean:
-	rm alvara sha1.o ContentList.o StreamPersistence.o Alvara.o
+	rm alvara sha1.o ContentList.o StreamPersistence.o Alvara.o 2>/dev/null
 	
 install:
 	@mkdir -p $(HOME)/bin
