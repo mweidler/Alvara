@@ -5,7 +5,7 @@
 # sets symbolic links from $HOME/bin to alvara in the current directory.
 #
 #
-# Copyright (C) 2011 Marc Weidler (marc.weidler@web.de)
+# Copyright (C) 2012 Marc Weidler (marc.weidler@web.de)
 #
 # THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 # THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT
@@ -18,9 +18,11 @@
 # For infos regarding large file support, see the excellent page 
 # http://people.redhat.com/berrange/notes/largefile.html
 
-COPT = -W -Wall -Werror -O2 $(shell getconf LFS_CFLAGS)
+COMMIT_VERSION = $(shell git describe HEAD 2>/dev/null | sed 's/-/./;s/\([^-]*\).*/\1/')
+TAG_VERSION = $(shell git describe HEAD 2>/dev/null | sed 's/\([^-]*\).*/\1/')
+
+COPT = -W -Wall -Werror -O2 $(shell getconf LFS_CFLAGS) -DCOMMIT_VERSION='"$(COMMIT_VERSION)"'
 LOPT = -s $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
-TAG_VERSION = $(shell git describe HEAD 2>/dev/null | sed 's/-/./;s/\([^-]*\).*/\1/')
 
 #getconf LFS_CFLAGS: RHEL 5.7 64Bit:      empty
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64

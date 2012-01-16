@@ -33,7 +33,6 @@
 
 using namespace std;
 
-
 #define COMMAND_NONE   0
 #define COMMAND_CREATE 1
 #define COMMAND_VERIFY 2
@@ -45,6 +44,8 @@ static int verbosity= VERBOSITY_INFO;
 static int showhelp= 0;
 static int showversion= 0;
 static int ignorance= 0;
+
+static char alvara_version[128];
 
 /* options map for getopt() */
 static struct option long_options[]=
@@ -71,7 +72,7 @@ static struct option long_options[]=
  *******************************************************************************************/ 
 static void usage(const char *prgname)
 {
-  cout << prgname << " " << ALVARA_VERSION << " - file integrity verification.\n"
+  cout << prgname << " " << alvara_version << " - file integrity verification.\n"
 
   "Usage: " << prgname << " <options> <file-or-path> [<file-or-path>] ...\n"
   "where <options> start at least with one '-' and can be\n"
@@ -136,7 +137,9 @@ int main (int argc, char *argv[])
   int rc= RC_OK;
   Alvara alvara;
   const char *ref_filename= NULL;
-  
+
+  strcpy(alvara_version, (strlen(COMMIT_VERSION)>0)?COMMIT_VERSION:ALVARA_VERSION);
+   
   // ensure large file support
   struct stat meta;
   if (sizeof(meta.st_size) < 8)
@@ -149,7 +152,7 @@ int main (int argc, char *argv[])
   // Now check and parse parameters...
   if (argc == 2 && (strcmp(argv[1], "--version") == 0))
   {
-    cout << argv[0] << " version " << ALVARA_VERSION << "\n";
+    cout << argv[0] << " version " << alvara_version << "\n";
     return RC_OK;
   }
 
@@ -261,7 +264,7 @@ int main (int argc, char *argv[])
 
   if (showversion)
   {
-    cout << argv[0] << " version " << ALVARA_VERSION << "\n";
+    cout << argv[0] << " version " << alvara_version << "\n";
     return RC_OK;
   }
 
