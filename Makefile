@@ -21,33 +21,40 @@
 COMMIT_VERSION = $(shell git describe HEAD 2>/dev/null | sed 's/-/./;s/\([^-]*\).*/\1/')
 TAG_VERSION = $(shell git describe HEAD 2>/dev/null | sed 's/\([^-]*\).*/\1/')
 
-COPT = -W -Wall -Werror -O2 $(shell getconf LFS_CFLAGS) -DCOMMIT_VERSION='"$(COMMIT_VERSION)"'
+COPT = -W -Wall -Werror -O2
+AOPT = $(COPT) $(shell getconf LFS_CFLAGS)
+VOPT = $(AOPT) -DCOMMIT_VERSION='"$(COMMIT_VERSION)"'
 LOPT = -s $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
 
 #getconf LFS_CFLAGS: RHEL 5.7 64Bit:      empty
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #                    Linux Mint 12 64Bit: empty
 
+all: dropcaches alvara
+
+dropcaches: dropcaches.c
+	g++ $(COPT) $(LOPT) dropcaches.c -o dropcaches
+
 alvara: alvara_main.cpp version.h sha1.o ContentList.o StreamPersistence.o Alvara.o
 	@if [ "$(TAG_VERSION)" != "" ]; then echo "#define ALVARA_VERSION \"$(TAG_VERSION)\"" >version.h; fi
-	g++ $(COPT) $(LOPT) alvara_main.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o -o alvara 
+	g++ $(VOPT) $(LOPT) alvara_main.cpp sha1.o ContentList.o StreamPersistence.o Alvara.o -o alvara
 
 sha1.o: sha1.c sha1.h
-	g++ $(COPT) -c sha1.c -o sha1.o
+	g++ $(AOPT) -c sha1.c -o sha1.o
 
 ContentList.o: ContentList.cpp ContentList.hpp
-	g++ $(COPT) -c ContentList.cpp -o ContentList.o
+	g++ $(AOPT) -c ContentList.cpp -o ContentList.o
 
 Alvara.o: Alvara.cpp Alvara.hpp
-	g++ $(COPT) -c Alvara.cpp -o Alvara.o
+	g++ $(AOPT) -c Alvara.cpp -o Alvara.o
 
 StreamPersistence.o: StreamPersistence.cpp StreamPersistence.hpp
-	g++ $(COPT) -c StreamPersistence.cpp -o StreamPersistence.o
+	g++ $(AOPT) -c StreamPersistence.cpp -o StreamPersistence.o
 
 clobber: clean
 
 clean:
-	rm alvara sha1.o ContentList.o StreamPersistence.o Alvara.o 2>/dev/null
+	rm alvara sha1.o ContentList.o StreamPersistence.o Alvara.o dropcaches 2>/dev/null
 	
 install:
 	@mkdir -p $(HOME)/bin
@@ -65,3 +72,4 @@ uninstall:
 	rm -f $(HOME)/bin/alvara
 
 .PHONY: install link uninstall
+
