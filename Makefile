@@ -30,10 +30,7 @@ LOPT = -s $(shell getconf LFS_LDFLAGS) $(shell getconf LFS_LIBS)
 #                    Ubuntu 10.04 32Bit: -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #                    Linux Mint 12 64Bit: empty
 
-all: dropcaches alvara
-
-dropcaches: dropcaches.c
-	g++ $(COPT) $(LOPT) dropcaches.c -o dropcaches
+all: alvara
 
 alvara: alvara_main.cpp version.h sha1.o ContentList.o StreamPersistence.o Alvara.o
 	@if [ "$(TAG_VERSION)" != "" ]; then echo "#define ALVARA_VERSION \"$(TAG_VERSION)\"" >version.h; fi
@@ -54,7 +51,7 @@ StreamPersistence.o: StreamPersistence.cpp StreamPersistence.hpp
 clobber: clean
 
 clean:
-	rm alvara sha1.o ContentList.o StreamPersistence.o Alvara.o dropcaches 2>/dev/null
+	rm alvara sha1.o ContentList.o StreamPersistence.o Alvara.o 2>/dev/null
 	
 install:
 	@mkdir -p $(HOME)/bin
